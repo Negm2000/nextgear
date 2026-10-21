@@ -1,4 +1,4 @@
-"""Turn report.json into results/REPORT.md and two figures in the style of a paper."""
+"""Turn report.json into results/REPORT.md and figures in the style of a paper."""
 
 from pathlib import Path
 
@@ -71,23 +71,27 @@ def figure_gap(report: dict, path: Path) -> None:
         plt.close(fig)
 
 
-def figure_what_if(report: dict, path: Path) -> None:
-    """Predicted chance that a forced submission passes, against the observed rate."""
-    w = report["what_if"]
-    names = [report["next_event"]["best_ngram"], "state_counts", report["next_event"]["gru"], "oracle", "oracle_do"]
-    values = [w["models"][n]["submit_p_admissible"] for n in names]
+def figure_unseen(report: dict, path: Path) -> None:
+    """System-check accuracy on each excluded combination: the n-gram, and the GRUs that did and did not see it."""
+    runs = report["holdout_sweep"]["runs"]
+    groups = [tuple(g) for g in report["holdout_sweep"]["groups"]]
     with plt.rc_context(PAPER):
-        fig, ax = plt.subplots(figsize=(5.6, 1.9))
-        _bars(ax, names, values, [LIGHT, GREY, GRU, "white", INK], lambda v: f"{v:.1%}",
-              labels={"oracle": r"Oracle, $a$ observed", "oracle_do": r"Oracle, $\mathrm{do}(a)$"})
-        ax.axvline(w["true_admissible_rate"], color=INK, linewidth=0.8, linestyle=(0, (4, 2)))
-        ax.text(w["true_admissible_rate"], len(names) - 0.4, f" observed: {w['true_admissible_rate']:.1%}",
-                fontsize=8, va="bottom")
-        ax.set_xlim(0, max(values) * 1.3)
-        ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(0.05))
+        fig, ax = plt.subplots(figsize=(5.6, 1.7))
+        for y, group in enumerate(reversed(groups)):
+            mine = [r for r in runs if tuple(r["group"]) == group]
+            ax.plot([mine[0]["ngram_system_accuracy"]], [y], "s", color=GREY, ms=6, label="n-gram" if y == 0 else None)
+            ax.plot([r["system_accuracy"] for r in mine], [y] * len(mine), "o", color=GRU, ms=5,
+                    label="GRU, combination unseen" if y == 0 else None)
+            seen = [r["seen_system_accuracy"] for r in mine if r["seen_system_accuracy"] is not None]
+            ax.plot(seen, [y] * len(seen), "o", mfc="white", mec=INK, ms=5, label="GRU, combination seen" if y == 0 else None)
+        ax.set_yticks(range(len(groups)), [_group(g) for g in reversed(groups)])
+        ax.set_ylim(-0.6, len(groups) - 0.4)
+        ax.set_xlim(0.5, 1.0)
         ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:.0%}"))
-        ax.set_xlabel(r"predicted $P(\mathrm{pass} \mid e_{1:t},\ a = \mathrm{submit})$ at every decision point")
-        fig.tight_layout()
+        ax.set_xlabel("system-check accuracy on new sessions of the excluded combination (one mark per seed)")
+        for side in ("top", "right", "left"):
+            ax.spines[side].set_visible(False)
+        ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=3, frameon=False, fontsize=8, handletextpad=0.3)
         fig.savefig(path, bbox_inches="tight", pad_inches=0.06)
         plt.close(fig)
 
@@ -96,7 +100,8 @@ def render(report: dict, results_dir: Path) -> None:
     figures = results_dir / "figures"
     figures.mkdir(parents=True, exist_ok=True)
     figure_gap(report, figures / "gap.svg")
-    figure_what_if(report, figures / "what-if.svg")
+    if "holdout_sweep" in report:
+        figure_unseen(report, figures / "unseen.svg")
     (results_dir / "REPORT.md").write_text(markdown(report), encoding="utf-8", newline="\n")
 
 

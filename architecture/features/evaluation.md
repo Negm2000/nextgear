@@ -155,7 +155,7 @@ Evaluation computes and writes; session state belongs to `cpt-nextgear-state-sim
 
 - [x] `p1` - **ID**: `cpt-nextgear-dod-evaluation-report`
 
-The system **MUST** write `results/report.json` with every metric above, paired intervals, all configured GRU seeds and stage timings, and render `results/REPORT.md` and two figures from it without computing anything new.
+The system **MUST** write `results/report.json` with every metric above, paired intervals, all configured GRU seeds and stage timings, and render `results/REPORT.md` and its figures from it without computing anything new.
 
 **Implements**:
 - `cpt-nextgear-algo-evaluation-score`

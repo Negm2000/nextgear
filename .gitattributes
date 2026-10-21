@@ -1,8 +1,6 @@
 * text=auto eol=lf
 *.jsonl text eol=lf
 *.pt binary
-*.png binary
-*.zip binary
 .cf-studio/config/kits/sdlc/** linguist-vendored=true
 assets/*.svg linguist-generated=true
 results/figures/*.svg linguist-generated=true

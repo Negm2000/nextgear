@@ -36,7 +36,7 @@ class PipelineTests(unittest.TestCase):
             runs = report["holdout_sweep"]["runs"]
             self.assertEqual(len(runs), len(config["holdout"]["groups"]) * len(config["holdout"]["seeds"]))
             self.assertTrue(all(run["sessions"] == 15 and run["excluded_train"] > 0 for run in runs))
-            for name in ("REPORT.md", "figures/gap.svg", "figures/what-if.svg"):
+            for name in ("REPORT.md", "figures/gap.svg", "figures/unseen.svg"):
                 self.assertTrue((root / "results" / name).exists(), name)
 
             data = benchmark.load_data(config, root / "data")

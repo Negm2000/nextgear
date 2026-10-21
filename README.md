@@ -18,7 +18,7 @@ A simulated agent builds an application from sixteen gears, one proposal at a ti
 
 1. **It predicts verdicts that depend on information it never sees.** From raw events alone, the GRU gets 89.4% of pass/fail verdicts right. A six-event n-gram gets 66.1%, a count model given the assembly directly 82.4%, and the exact oracle 91.5%.
 2. **It gets most of the way to the best possible score.** On 2,000 held-out sessions it closes 86% of the log-loss gap between the best n-gram and the oracle; across three training seeds, 82–86%.
-3. **It partly generalises to requirement combinations it never saw.** Three combinations were each removed from training, with three seeds each. In all nine runs the retrained GRU still beats the n-gram on the missing combination. On its pass/fail verdicts it averages 74.9%, against 60.8% for the n-gram and 87.6% for a GRU that saw it, and it varies widely between seeds (59–90%).
+3. **It partly generalises to requirement combinations it never saw.** Trained without a combination, it still beats the n-gram on it in all nine runs (three combinations × three seeds). It gets 74.9% of pass/fail verdicts right on average, against 60.8% for the n-gram and 87.6% for a GRU that saw the combination, and it varies widely between seeds.
 4. **It degrades when the agent changes.** A sloppier agent triples its distance from the oracle, from 0.035 to 0.105 nats per event, but it stays far ahead of both count models.
 
 **Built with Constructor Fabric.**
@@ -64,24 +64,13 @@ The demo then asks what the checks would have said to every gear the agent could
 
 ## How it works
 
-Each session draws hidden requirements and agent traits:
+![The sixteen gears an agent can assemble: the request path in documented order, the three execution gears, optional gears, the outbound gateway and the platform gears, with every dependency declared in gears-rust.](assets/gears.svg)
 
-- **Requirements:** one of three execution gears, any of three optional gears, and a tight or loose latency budget.
-- **Agent traits:** careful or sloppy, and whether it knows that external calls need the outbound gateway and which platform gears the others depend on.
+*What the agent assembles. The top row is the request path in documented order, and every grey arrow is a dependency that gears-rust declares.*
 
-The agent intends the next gear it needs, but picks another action 5% of the time if careful and 25% if sloppy.
+Each session draws a hidden specification (one execution gear, any of the dashed gears, a tight or loose latency budget) and an agent that is careful or sloppy and may not know about the outbound gateway or the platform dependencies. The agent proposes the gear it needs next, but picks another action 5% of the time if careful and 25% if sloppy. Local checks reject proposals out of order. The system check reports the first of: a missing gear, a missing dependency, an unguarded external call, an unneeded gear, or latency over budget. The agent then repairs the assembly and resubmits, until it passes or the agent runs out of budget. The probabilities, frequencies, check order, latencies and budgets are this project's assumptions. The [31 events](src/nextgear/events.py) and the [state machine](assets/states.svg) give every detail.
 
-- **Local checks** reject duplicates, gears out of request order, and execution gears placed before the Auth Resolver.
-- **System checks** report the first failure among: a missing request-path gear, a missing declared dependency, unguarded external calls, unneeded gears, and latency over budget.
-- **In response** the agent rolls back, adds what was missing, or enables a cache. It gives up if the cache cannot fix latency, or after 60 proposals or 5 submissions.
-
-The [31 event descriptions](src/nextgear/events.py) form the prediction vocabulary; the [state machine](assets/states.svg) shows every transition.
-
-![Modules, information boundaries and evaluation flow.](assets/architecture.svg)
-
-**What comes from Fabric, and what is assumed.** From [gears-rust](https://github.com/constructorfabric/gears-rust/blob/fc765feb8e328ae31c44bfb3a0c981b42e32a105/docs/GEARS.md) at a pinned commit come the gears, their request order, the no-bypass and outbound-adapter rules, and every dependency. The agent's probabilities, the requirement frequencies, the check order, latencies and budgets are this project's assumptions.
-
-**The predictors.** The GRU sees event IDs only, never requirements, and is compared with three count models: frequency, n-grams with context chosen on validation data, and counts over the assembly reconstructed from events. The oracle reuses the generator's equations, so it is exact within the simulator but not independent evidence that the simulator is right.
+**The predictors.** The GRU sees event IDs only, never requirements, and is compared with three count models: frequency, n-grams with context chosen on validation data, and counts over the assembly reconstructed from events. The oracle reuses the generator's equations, so it is exact within the simulator but not independent evidence that the simulator is right. The [design](architecture/DESIGN.md) shows the modules and information boundaries.
 
 A fixed event window forgets gears accepted before a run of rejections; one recurrent layer can carry that history and trains on a CPU.
 
@@ -102,8 +91,11 @@ The GRU's log-loss difference from the n-gram is −0.2202 nats per event, with 
 
 *Excess log loss over the oracle. In (a) and (c) the oracle uses the priors that generated the sessions, so the bars are distances from the best achievable score. In (b) and (d) the sessions were selected after generation, which the oracle is not told about, so there it is a common reference, not the optimum.*
 
+![System-check accuracy on each excluded combination for the n-gram and for GRUs that did and did not see it, one mark per seed.](results/figures/unseen.svg)
+
+*Each combination was removed from training in turn. On overall log loss, the GRU that never saw a combination beats the n-gram in all nine runs, with every interval below zero ([all runs](results/REPORT.md#repeated-over-groups-and-seeds)).*
+
 - **Repeated traces.** 628 of the 2,000 test sessions repeat a training session exactly. On the other 1,372, the GRU still beats the n-gram by 0.25 nats per event. This rules out recall of whole traces, not reuse of familiar prefixes.
-- **Unseen combinations.** Across the nine runs, the retrained GRU beats the n-gram by 0.15–0.23 nats per event, every interval below zero. On system checks it beats the n-gram in 8 of 9 runs and falls short of the GRU that saw the group in all nine. The [full table](results/REPORT.md#repeated-over-groups-and-seeds) lists every run.
 - **Actions not taken.** For gears the agent did not propose, the GRU predicts the local verdict correctly 99.76% of the time.
 - **Forced submissions.** These pass 4.7% of the time, and the GRU predicts 4.8% on average. A chosen submission is evidence that the agent thought the assembly was ready; a forced one is not. The oracle's log loss is 0.1174 when it treats forced submissions as observations and 0.0885 when it treats them as interventions. The GRU, trained on logs, scores 0.1776: predicting the next logged event is not the same as predicting the consequence of an action.
 
