@@ -6,9 +6,9 @@
 
 | 86% | 89.4% | 24,910 / 24,910 | 1 command |
 |:---:|:---:|:---:|:---:|
-| of the way from a six-event baseline to the best possible score | of pass/fail verdicts predicted from events alone (n-gram: 66.1%) | assemblies on which the simulator agrees with Fabric's real registry | `python -m nextgear demo`, with no training |
+| of the way from a six-event baseline to the best possible score | of pass/fail verdicts predicted from events alone (n-gram: 66.1%) | assemblies on which the dependency check agrees with Fabric's real registry | `python -m nextgear demo`, with no training |
 
-A simulated agent builds an application from sixteen gears, one proposal at a time, and the platform's checks accept or reject each step. The rules are not invented. The request order comes from Fabric's documentation, and every dependency comes from the `deps` each gear declares in gears-rust. A one-layer GRU sees only the stream of events. An exact Bayes oracle averages over every possible hidden requirement and marks the best any such predictor can do.
+A simulated agent builds an application from sixteen gears, one proposal at a time, and the platform's checks accept or reject each step. The gear names and request order come from Fabric's documentation, and every dependency comes from the `deps` each implemented gear declares in gears-rust. A one-layer GRU sees only the stream of events. An exact Bayes oracle averages over every possible hidden requirement and marks the best any such predictor can do.
 
 ![A held-out session replayed event by event: the request path, the platform gears, forecasts made before each event, and the oracle's belief about the hidden specification.](assets/session.svg)
 
@@ -16,7 +16,7 @@ A simulated agent builds an application from sixteen gears, one proposal at a ti
 
 ## What it shows
 
-1. **It predicts verdicts that depend on information it never sees.** From raw events alone, the GRU gets 89.4% of pass/fail verdicts right. A six-event n-gram gets 66.1%, a count model given the assembly directly 82.4%, and the exact oracle 91.5%.
+1. **It predicts verdicts that depend on information it never sees.** From raw events alone, the GRU gets 89.4% of pass/fail verdicts right. A six-event n-gram gets 66.1%, a count model given the assembly directly 82.2%, and the exact oracle 91.5%.
 2. **It gets most of the way to the best possible score.** On 2,000 held-out sessions it closes 86% of the log-loss gap between the best n-gram and the oracle; across three training seeds, 82–86%.
 3. **It partly generalises to requirement combinations it never saw.** Trained without a combination, it still beats the n-gram on it in all nine runs (three combinations × three seeds). It gets 74.9% of pass/fail verdicts right on average, against 60.8% for the n-gram and 87.6% for a GRU that saw the combination, and it varies widely between seeds.
 4. **It degrades when the agent changes.** A sloppier agent triples its distance from the oracle, from 0.035 to 0.105 nats per event, but it stays far ahead of both count models.
@@ -68,7 +68,7 @@ The demo then asks what the checks would have said to every gear the agent could
 
 *What the agent assembles: the request path from Fabric's documentation, and the platform gears that Fabric's declared dependencies pull in.*
 
-Each session draws a hidden specification (one execution gear, any of the dashed gears, a tight or loose latency budget) and an agent that is careful or sloppy and may not know about the outbound gateway or the platform dependencies. The agent proposes the gear it needs next, but picks another action 5% of the time if careful and 25% if sloppy. Local checks reject proposals out of order. The system check reports the first of: a missing gear, a missing dependency, an unguarded external call, an unneeded gear, or latency over budget. The agent then repairs the assembly and resubmits, until it passes or the agent runs out of budget. The probabilities, frequencies, check order, latencies and budgets are this project's assumptions. The [31 events](src/nextgear/events.py) and the [state machine](assets/states.svg) give every detail.
+Each session draws a hidden specification (one execution gear, any of the dashed gears, a tight or loose latency budget) and an agent that is careful or sloppy and may not know about the outbound gateway or the platform dependencies. The agent proposes the gear it needs next, but picks another action 5% of the time if careful and 25% if sloppy. Local checks reject proposals out of order. The system check reports the first of: a missing gear, a missing dependency, an unguarded external call, an unneeded gear, or latency over budget. The agent then repairs the assembly and resubmits, until it passes or the agent runs out of budget. The probabilities, frequencies, check order, latencies and budgets are this project's assumptions, and so are the two departures from Fabric under [Limits](#limits). The [31 events](src/nextgear/events.py) and the [state machine](assets/states.svg) give every detail.
 
 **The predictors.** The GRU sees event IDs only, never requirements, and is compared with three count models: frequency, n-grams with context chosen on validation data, and counts over the assembly reconstructed from events. The oracle reuses the generator's equations, so it is exact within the simulator but not independent evidence that the simulator is right. The [design](architecture/DESIGN.md) shows the modules and information boundaries.
 
@@ -81,7 +81,7 @@ Every forecast is judged right or wrong by its top guess (accuracy), and by the 
 | Predictor | Log loss per event ↓ | Accuracy | System-check accuracy |
 |---|---:|---:|---:|
 | Best n-gram (6 events) | 0.7988 | 79.2% | 66.1% |
-| Counts over the reconstructed assembly | 0.7350 | 81.4% | 82.4% |
+| Counts over the reconstructed assembly | 0.7322 | 81.5% | 82.2% |
 | GRU, seed 0 | **0.5786** | **86.0%** | **89.4%** |
 | Bayes oracle | 0.5434 | 86.9% | 91.5% |
 
@@ -103,6 +103,7 @@ The GRU's log-loss difference from the n-gram is −0.2202 nats per event, with 
 
 ## Limits
 
+- **Two departures from Fabric.** Its documentation makes the Policy Manager, License Resolver and Usage Collector mandatory on every external request; here they are optional requirements, so that sessions differ in what they need. Serverless Runtime is documented but not yet implemented at the pinned commit, so it declares nothing; the simulator assumes it has no dependencies.
 - **The intervals are conditional** on the fitted models and the simulator. The analyses are exploratory, with no correction for multiple comparisons. The GRU's settings were chosen for an earlier version of the simulator and not re-tuned.
 - **The unseen-combination result depends on the rules.** Under the first, hand-written rules the test failed: the retrained GRU's difference from the n-gram was +0.0068 [−0.0092, +0.0233]. The gears-rust dependencies replaced those rules, and were committed, before the runs reported here. All nine runs come from one simulator, so this is evidence about the simulator, not about real composition traces.
 
@@ -121,7 +122,7 @@ python -m unittest discover -s tests -v
 python -m nextgear --config configs/quick.toml --data-dir runs/quick/data --models-dir runs/quick/models --results-dir runs/quick/results all
 ```
 
-The second command runs the whole pipeline at toy sizes. `python -m nextgear all` reproduces the recorded results; with 4 CPU threads on Linux it took 1,422 seconds for the main experiment and 2,398 for the repeated exclusion test.
+The second command runs the whole pipeline at toy sizes. `python -m nextgear all` reproduces the recorded results; with 4 CPU threads on Linux it took about 1,400 seconds for the main experiment and 2,400 for the repeated exclusion test.
 
 - `all` overwrites the selected directories, so point it at `runs/` to keep the reference artifacts.
 - `train`, `evaluate`, `sweep`, `demo` and `hero` also run on their own.

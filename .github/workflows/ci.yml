@@ -57,3 +57,10 @@ jobs:
         run: cargo build --release --locked --manifest-path tools/registry_check/Cargo.toml
       - name: Compare Nextgear's dependency check with the real registry
         run: python tools/crosscheck_registry.py
+      - name: Re-extract the declared dependencies and check they have not drifted
+        run: |
+          git init -q "$RUNNER_TEMP/gears-rust"
+          git -C "$RUNNER_TEMP/gears-rust" fetch -q --depth 1 https://github.com/constructorfabric/gears-rust fc765feb8e328ae31c44bfb3a0c981b42e32a105
+          git -C "$RUNNER_TEMP/gears-rust" checkout -q FETCH_HEAD
+          python tools/extract_gears.py "$RUNNER_TEMP/gears-rust"
+          git diff --exit-code src/nextgear/fabric_gears.py

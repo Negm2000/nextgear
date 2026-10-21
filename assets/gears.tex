@@ -28,6 +28,7 @@
 \node[gear, minimum height=22mm] (exec) at (14.4, 0) {\textit{one of}\\[2pt] Chat Engine\\ Billing Ledger\\ Serverless Runtime};
 \node[gear]     (tenant)  at (18, 0)   {Tenant Resolver};
 \node[optional] (usage)   at (21.6, 0) {Usage Collector};
+\node[note, anchor=north] at (exec.south) {Serverless Runtime: not yet implemented};
 \foreach \a/\b in {api/authn, authn/policy, policy/license, license/exec, exec/tenant, tenant/usage}
   \draw[order] (\a) -- (\b);
 
@@ -69,9 +70,9 @@
   \draw[dep] (8.1, 0) -- (9.1, 0);       \node at (9.2, 0) {declared dependency (\texttt{\#[toolkit::gear(deps)]})};
   \draw[assumed] (17.4, 0) -- (18.4, 0); \node at (18.5, 0) {this project's assumption};
   \node[draw, dashed, minimum width=6mm, minimum height=4mm] at (0.3, -0.7) {};
-  \node at (1.1, -0.7) {needed only if the specification asks for it};
-  \node[draw, fill=black!10, minimum width=6mm, minimum height=4mm] at (8.4, -0.7) {};
-  \node at (9.0, -0.7) {platform gear, off the request path};
+  \node at (1.1, -0.7) {optional here; mandatory in Fabric's documentation};
+  \node[draw, fill=black!10, minimum width=6mm, minimum height=4mm] at (17.7, -0.7) {};
+  \node at (18.3, -0.7) {platform gear, off the request path};
 \end{scope}
 \end{tikzpicture}
 \end{document}

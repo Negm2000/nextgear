@@ -271,7 +271,7 @@ NumPy for arrays and statistics, PyTorch for the GRU, matplotlib for the animate
 
 ## 11. Assumptions
 
-Requirement frequencies, the mistake policy, verdict precedence, latency values, budgets and cache effects are authored. The dependency graph comes from gears-rust; matching the documented gear names to its crates is this project's reading. Splits come from independent random streams, but identical event sequences can still recur across them. Because the generator and oracle share code, the oracle is an internal reference, not independent validation.
+Requirement frequencies, the mistake policy, verdict precedence, latency values, budgets and cache effects are authored. The dependency graph comes from gears-rust; matching the documented gear names to its crates is this project's reading. Two choices depart from Fabric: the Policy Manager, License Resolver and Usage Collector, mandatory on every external request in its documentation, are optional requirements here, and Serverless Runtime, documented but not yet implemented, is assumed to have no dependencies. Splits come from independent random streams, but identical event sequences can still recur across them. Because the generator and oracle share code, the oracle is an internal reference, not independent validation.
 
 ## 12. Risks
 

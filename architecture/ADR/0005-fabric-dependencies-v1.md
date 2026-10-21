@@ -48,7 +48,7 @@ Chosen option: "Declared dependencies from gears-rust". `tools/extract_gears.py`
 
 ### Consequences
 
-The dependency graph is Fabric's own: the outbound gateway needs the Credentials Store, the Billing Ledger needs the Account Manager and, through it, the Resource Group, and every valid assembly needs the Tenant Resolver, so it is no longer a separate requirement. Sessions are about twice as long, so the proposal and submission budgets were raised. Serverless Runtime has no gear declaration at the pinned commit and therefore no dependencies. The request order, the check precedence, the agent's policy and all probabilities and latencies remain this project's assumptions.
+The dependency graph is Fabric's own: the outbound gateway needs the Credentials Store, the Billing Ledger needs the Account Manager and, through it, the Resource Group, and every valid assembly needs the Tenant Resolver, so it is no longer a separate requirement. Sessions are about twice as long, so the proposal and submission budgets were raised. Serverless Runtime is documented but not implemented at the pinned commit, so it has no gear declaration; the simulator assumes it has no dependencies, which is a placeholder rather than Fabric's graph. Fabric's documentation also makes the Policy Manager, License Resolver and Usage Collector mandatory on every external request, while the simulator keeps them as optional requirements so that sessions differ in hidden ways. The request order, the check precedence, the agent's policy and all probabilities and latencies remain this project's assumptions.
 
 ### Confirmation
 
