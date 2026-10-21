@@ -28,7 +28,7 @@ description: Bootstrap paired sessions
 
 ## Context and Problem Statement
 
-Events within one session are dependent and models forecast the same events. Event-wise independent resampling would overstate precision.
+Events within one session depend on each other, and every model forecasts the same events. Resampling events independently would overstate precision.
 
 ## Decision Drivers
 
@@ -44,21 +44,21 @@ Events within one session are dependent and models forecast the same events. Eve
 
 ## Decision Outcome
 
-Chosen option: "Paired session bootstrap". Resampling complete sessions and dividing summed loss difference by summed event count matches the intended per-event comparison.
+Chosen option: "Paired session bootstrap". It resamples complete sessions and divides the summed loss difference by the summed event count, which matches the per-event comparison the report states.
 
 ### Consequences
 
-Percentile intervals do not capture simulator error, all training randomness or model-selection uncertainty. Analyses are exploratory and lack multiplicity correction.
+Percentile intervals do not capture simulator error, all training randomness or the uncertainty of model selection. The analyses are exploratory and not corrected for multiple comparisons.
 
 ### Confirmation
 
-Identity and known-sign tests, same-event checks and explicit three-seed reporting. The holdout model has one training seed.
+Tests check that identical scores give a zero difference, that a clearly better model gets a negative one, and that both score sets cover the same events. All three training seeds are reported; the holdout model has one.
 
 ## Pros and Cons of the Options
 
 ### Paired session bootstrap
 
-Preserves sequence dependence and comparison pairing; conditional on fitted models and generator.
+Keeps the dependence within sessions and the pairing between models; conditional on the fitted models and the generator.
 
 
 ### Event-wise bootstrap
@@ -72,7 +72,7 @@ Simple, but discards probability quality and uncertainty.
 
 ## More Information
 
-[Recorded results](../../results/REPORT.md). This is a concise record of the reviewed design rationale, not evidence of an untouched or preregistered selection process.
+[Recorded results](../../results/REPORT.md). This record summarises the rationale for the reviewed design. It does not show that the choice was made before results were seen, or that it was preregistered.
 
 ## Traceability
 

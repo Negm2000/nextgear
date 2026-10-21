@@ -27,13 +27,13 @@ description: Use gear assembly sessions
 
 ## Context and Problem Statement
 
-The assignment permits any discrete sequence. We need meaningful history, uncertain decisions, deterministic checks and inspectable ground truth.
+The assignment allows any discrete event sequence. A useful one needs a history that matters for prediction, decisions made under uncertainty, deterministic checks and ground truth that can be inspected.
 
 ## Decision Drivers
 
 - Relevance to architecture modelling
-- Observable repair history
-- Small controlled experiment
+- Repair history that a predictor can observe
+- A small, controlled experiment
 
 ## Considered Options
 
@@ -42,30 +42,30 @@ The assignment permits any discrete sequence. We need meaningful history, uncert
 
 ## Decision Outcome
 
-Chosen option: "Gear assembly simulator". Its accepted gears, rejected proposals and rollbacks create memory requirements while keeping events and checks inspectable.
+Chosen option: "Gear assembly simulator". Accepted gears, rejected proposals and rollbacks give a predictor something it has to remember, while every event and check stays easy to inspect.
 
 ### Consequences
 
-The data are synthetic and can reward authored shortcuts. No real Fabric checker or deployment is executed.
+The data are synthetic, so a model can be rewarded for exploiting regularities of the authored rules. No real Fabric checker or deployment runs.
 
 ### Confirmation
 
-Rule examples, deterministic seeded generation and complete-session replay tests. Public motivation and authored assumptions are separated in FABRIC_USAGE.md.
+Tests cover rule examples, deterministic seeded generation and replay of complete sessions. FABRIC_USAGE.md separates the public motivation from the authored assumptions.
 
 ## Pros and Cons of the Options
 
 ### Gear assembly simulator
 
-Links requirements, proposals and admissibility; all stochastic and latency assumptions must be declared.
+Connects requirements, proposals and admissibility, but every stochastic and latency assumption has to be declared.
 
 
 ### Generic event stream
 
-Smaller, but offers less connection to the role or meaningful composition state.
+Smaller, but with less connection to the role and no meaningful composition state.
 
 ## More Information
 
-[Recorded results](../../results/REPORT.md). This is a concise record of the reviewed design rationale, not evidence of an untouched or preregistered selection process.
+[Recorded results](../../results/REPORT.md). This record summarises the rationale for the reviewed design. It does not show that the choice was made before results were seen, or that it was preregistered.
 
 ## Traceability
 

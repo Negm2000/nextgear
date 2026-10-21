@@ -19,7 +19,7 @@ description: Decomposition - Nextgear
 
 ## 1. Overview
 
-Four features follow generation → prediction → evaluation → commands/presentation. Shared component references denote one local application with distinct module ownership. There is no separate audit layer.
+The four features follow the data: generation, prediction, evaluation, then the commands and presentation that tie them together. They share one design component because they are modules of one local program, each owning its own files. There is no separate audit layer.
 
 ## 2. Entries
 
@@ -29,10 +29,10 @@ Four features follow generation → prediction → evaluation → commands/prese
 
 - [x] `p1` - **ID**: `cpt-nextgear-feature-simulator`
 
-- **Purpose**: Rules, vocabulary, sessions and visible transitions.
+- **Purpose**: Define the events and the checks, and generate sessions whose visible transitions every other feature reuses.
 - **Depends On**: None
-- **Scope**: Rules, vocabulary, sessions and visible transitions.
-- **Out of scope**: Production services and multi-step planning.
+- **Scope**: Event vocabulary, local and system checks, hidden-value sampling, session generation and storage, visible state transitions.
+- **Out of scope**: Production gear services and multi-step planning.
 - **Requirements Covered**:
 
   - [x] `p1` - `cpt-nextgear-fr-event-vocabulary`
@@ -56,10 +56,10 @@ Four features follow generation → prediction → evaluation → commands/prese
 
 - [x] `p1` - **ID**: `cpt-nextgear-feature-predictors`
 
-- **Purpose**: Count models, GRU and Bayesian reference.
+- **Purpose**: Predict the next event from a prefix of events.
 - **Depends On**: `cpt-nextgear-feature-simulator`
-- **Scope**: Count models, GRU and Bayesian reference.
-- **Out of scope**: Production services and multi-step planning.
+- **Scope**: Frequency, n-gram and state-count models, the GRU and the Bayesian reference, all behind one prediction contract.
+- **Out of scope**: Production services, multi-step planning and predictors that read hidden values.
 - **Requirements Covered**:
 
   - [x] `p1` - `cpt-nextgear-fr-next-event-prediction`
@@ -84,9 +84,9 @@ Four features follow generation → prediction → evaluation → commands/prese
 
 - [x] `p1` - **ID**: `cpt-nextgear-feature-evaluation`
 
-- **Purpose**: Scores, intervals, cohorts, what-if evidence and report.
+- **Purpose**: Turn predictions into evidence about what the models have learned.
 - **Depends On**: `cpt-nextgear-feature-simulator`, `cpt-nextgear-feature-predictors`
-- **Scope**: Scores, intervals, cohorts, what-if evidence and report.
+- **Scope**: Per-event scores, paired intervals, the novel-trace, changed-agent and excluded-combination tests, what-if verdicts and the benchmark report.
 - **Out of scope**: Production services and multi-step planning.
 - **Requirements Covered**:
 
@@ -114,9 +114,9 @@ Four features follow generation → prediction → evaluation → commands/prese
 
 - [x] `p1` - **ID**: `cpt-nextgear-feature-pipeline`
 
-- **Purpose**: Configuration, commands, terminal replay and animation.
+- **Purpose**: Make the experiment runnable and its predictions inspectable.
 - **Depends On**: `cpt-nextgear-feature-simulator`, `cpt-nextgear-feature-predictors`, `cpt-nextgear-feature-evaluation`
-- **Scope**: Configuration, commands, terminal replay and animation.
+- **Scope**: Configuration, commands, settings stamps, the terminal replay and the animation.
 - **Out of scope**: Production services and multi-step planning.
 - **Requirements Covered**:
 
@@ -138,4 +138,4 @@ Four features follow generation → prediction → evaluation → commands/prese
 
 ## 3. Feature Dependencies
 
-Predictors depend on simulator vocabulary/state. Evaluation depends on simulator truth and predictors. Pipeline orchestrates all three and presentation. Dependencies are one-way; shared domain state never causes the generator to import learned models.
+Predictors depend on the simulator's vocabulary and visible state. Evaluation depends on simulator truth and on the predictors. The pipeline orchestrates all three and renders the results. Every dependency points one way: the generator never imports a learned model.
