@@ -197,7 +197,7 @@ The system **MUST** evaluate the trained predictors, without retraining, on a ch
 
 - [x] `p1` - **ID**: `cpt-nextgear-fr-unseen-combination`
 
-The system **MUST** exclude sessions needing the Chat Engine with both the Policy Manager and the License Resolver from the training and validation data of retrained models, score new sessions from that group, and report the result whether it is positive or negative.
+The system **MUST** exclude sessions needing the Chat Engine with both the Policy Manager and the License Resolver from the training and validation data of retrained models, score new sessions from that group, and report the result whether it is positive or negative. It **MUST** repeat the test for further groups and training seeds and report every run.
 
 #### Demonstration
 

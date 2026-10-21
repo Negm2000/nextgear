@@ -12,7 +12,7 @@ import numpy as np
 import torch
 
 from .baselines import Frequency, NGram, StateCounts
-from .evaluation import calibration, in_holdout_group, paired_bootstrap, score, subset, summarize, what_if
+from .evaluation import calibration, in_group, in_holdout_group, paired_bootstrap, score, subset, summarize, what_if
 from .gru import GRUModel
 from .oracle import BayesOracle, predict_parallel
 from .report import render
@@ -91,6 +91,10 @@ def train_models(config: dict, data: dict, models_dir: Path, threads: int) -> li
     # @cpt-end:cpt-nextgear-algo-evaluation-holdout:p1:inst-exclude
     jobs = [(f"gru_seed{seed}", {**settings, "seed": seed}, *full) for seed in seeds]
     jobs.append(("gru_holdout", {**settings, "seed": seeds[0]}, *kept))
+    return _run_jobs(jobs, models_dir, threads)
+
+
+def _run_jobs(jobs: list[tuple], models_dir: Path, threads: int) -> list[dict]:
     workers = max(1, min(len(jobs), threads // 4))
     models_dir.mkdir(parents=True, exist_ok=True)
     jobs = [(*job, models_dir / f"{job[0]}.pt", max(1, threads // workers)) for job in jobs]
@@ -100,7 +104,7 @@ def train_models(config: dict, data: dict, models_dir: Path, threads: int) -> li
         with ProcessPoolExecutor(workers) as pool:
             records = list(pool.map(_fit, jobs))
     for r in records:
-        print(f"  {r['model']:<12} {r['epochs']:>2} epochs, validation log loss {r['validation_log_loss']:.4f}, "
+        print(f"  {r['model']:<34} {r['epochs']:>2} epochs, validation log loss {r['validation_log_loss']:.4f}, "
               f"{r['seconds']:.0f}s")
     return records
 
@@ -243,6 +247,116 @@ def run(config: dict, data_dir: Path, models_dir: Path, results_dir: Path, threa
     results_dir.mkdir(parents=True, exist_ok=True)
     (results_dir / "report.json").write_text(json.dumps(report, indent=1, allow_nan=False), encoding="utf-8")
     render(report, results_dir)
-    print(f"Done in {seconds['total']:.0f}s. Report: {results_dir / 'REPORT.md'}")
+    if "holdout" in config:
+        report = run_sweep(config, data_dir, models_dir, results_dir, threads, train, report)
+    print(f"Done in {time.perf_counter() - start:.0f}s. Report: {results_dir / 'REPORT.md'}")
     return report
     # @cpt-end:cpt-nextgear-flow-pipeline-reproduce:p1:inst-publish
+
+
+# The repeated exclusion test: several requirement groups, each removed from training in turn, with
+# several training seeds. It has its own data files, checkpoints and stamp, so it can be rerun with
+# `python -m nextgear sweep` without touching the main experiment.
+
+def _groups(config: dict) -> list[tuple[str, ...]]:
+    return [tuple(g) for g in config["holdout"]["groups"]]
+
+
+def group_key(group) -> str:
+    return "-".join(part.lower() for part in group)
+
+
+def _sweep_stamp(config: dict) -> str:
+    return _stamp(config) + json.dumps({"model": config["model"], "holdout": config["holdout"]}, sort_keys=True)
+
+
+def load_sweep_data(config: dict, data_dir: Path) -> dict[str, list]:
+    """New sessions for every group, drawn from the same pool as the holdout split."""
+    files = {group_key(g): data_dir / f"holdout-{group_key(g)}.jsonl" for g in _groups(config)}
+    stamp = data_dir / "sweep_stamp.txt"
+    if (not stamp.exists() or stamp.read_text(encoding="utf-8") != _sweep_stamp(config)
+            or not all(f.exists() for f in files.values())):
+        size = config["data"]["holdout"]
+        pool = generate(size * 30, config["seeds"]["holdout"], "holdout", priors(config))
+        for group in _groups(config):
+            sessions = [s for s in pool if in_group(s, group)][:size]
+            if len(sessions) < size:
+                raise ValueError(f"The holdout pool is too small for group {group}.")
+            write_sessions(files[group_key(group)], sessions)
+        stamp.write_text(_sweep_stamp(config), encoding="utf-8")
+    return {key: read_sessions(path) for key, path in files.items()}
+
+
+# @cpt-begin:cpt-nextgear-algo-evaluation-holdout:p1:inst-sweep
+def train_sweep(config: dict, data: dict, models_dir: Path, threads: int) -> list[dict]:
+    """One GRU per group and seed, each trained without its group."""
+    settings = {k: v for k, v in config["model"].items() if k != "seeds"}
+    jobs = []
+    for group in _groups(config):
+        kept = ([s.events for s in data["train"] if not in_group(s, group)],
+                [s.events for s in data["validation"] if not in_group(s, group)])
+        jobs += [(f"{group_key(group)}_seed{seed}", {**settings, "seed": seed}, *kept)
+                 for seed in config["holdout"]["seeds"]]
+    sweep_dir = models_dir / "sweep"
+    records = _run_jobs(jobs, sweep_dir, threads)
+    (sweep_dir / "stamp.txt").write_text(_sweep_stamp(config), encoding="utf-8")
+    return records
+
+
+def evaluate_sweep(config: dict, data: dict, groups: dict[str, list], models_dir: Path, threads: int,
+                   context: int) -> dict:
+    """Score every group's GRUs, the n-gram refit without the group, and the normal GRUs, on new
+    sessions from the group, against the base-prior oracle as a common reference."""
+    stamp = models_dir / "sweep" / "stamp.txt"
+    if not stamp.exists() or stamp.read_text(encoding="utf-8") != _sweep_stamp(config):
+        raise ValueError(f"The sweep models in {models_dir / 'sweep'} were trained on other data or settings; "
+                         "run `python -m nextgear sweep` first.")
+    ev = config["evaluation"]
+    boot = {"resamples": ev["bootstrap_resamples"], "seed": config["seeds"]["bootstrap"]}
+    seen = {f"gru_seed{s}": GRUModel.load(models_dir / f"gru_seed{s}.pt") for s in config["model"]["seeds"]}
+    results = []
+    for group in _groups(config):
+        key, sessions = group_key(group), groups[group_key(group)]
+        events = [s.events for s in sessions]
+        kept = [s.events for s in data["train"] if not in_group(s, group)]
+        models = {"ngram": NGram(context).fit(kept), **seen}
+        models |= {f"unseen_seed{s}": GRUModel.load(models_dir / "sweep" / f"{key}_seed{s}.pt")
+                   for s in config["holdout"]["seeds"]}
+        scored = {name: score(sessions, model.predict_many(events)) for name, model in models.items()}
+        scored["oracle"] = score(sessions, predict_parallel(priors(config), events, threads))
+        summary = {name: summarize(s, scored["oracle"]) for name, s in scored.items()}
+        for seed in config["holdout"]["seeds"]:
+            unseen, normal = f"unseen_seed{seed}", summary.get(f"gru_seed{seed}")
+            results.append({
+                "group": list(group), "seed": seed, "sessions": len(sessions),
+                "excluded_train": len(data["train"]) - len(kept),
+                "log_loss": summary[unseen]["all"]["log_loss"], "excess": summary[unseen]["all"]["excess"],
+                "system_accuracy": summary[unseen]["system check"]["accuracy"],
+                "ngram_system_accuracy": summary["ngram"]["system check"]["accuracy"],
+                "seen_system_accuracy": normal["system check"]["accuracy"] if normal else None,
+                "vs_ngram": paired_bootstrap(scored[unseen], scored["ngram"], **boot),
+            })
+    return {"groups": [list(g) for g in _groups(config)], "seeds": config["holdout"]["seeds"], "runs": results}
+# @cpt-end:cpt-nextgear-algo-evaluation-holdout:p1:inst-sweep
+
+
+def run_sweep(config: dict, data_dir: Path, models_dir: Path, results_dir: Path, threads: int, train: bool,
+              report: dict | None = None) -> dict:
+    """Train (optionally) and evaluate the repeated exclusion test, add it to the report and re-render."""
+    start = time.perf_counter()
+    data = load_data(config, data_dir)
+    groups = load_sweep_data(config, data_dir)
+    if train:
+        print("Training the repeated exclusion test")
+        train_sweep(config, data, models_dir, threads)
+    trained = time.perf_counter()
+    if report is None:
+        report = json.loads((results_dir / "report.json").read_text(encoding="utf-8"))
+    context = int(report["next_event"]["best_ngram"].split("_")[1])
+    print("Evaluating the repeated exclusion test")
+    report["holdout_sweep"] = evaluate_sweep(config, data, groups, models_dir, threads, context)
+    report["holdout_sweep"]["seconds"] = {"train": trained - start, "evaluate": time.perf_counter() - trained}
+    results_dir.mkdir(parents=True, exist_ok=True)
+    (results_dir / "report.json").write_text(json.dumps(report, indent=1, allow_nan=False), encoding="utf-8")
+    render(report, results_dir)
+    return report

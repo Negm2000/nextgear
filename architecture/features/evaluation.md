@@ -133,14 +133,15 @@ This feature has no user-facing flow; it runs inside `cpt-nextgear-flow-pipeline
 
 - [x] `p1` - **ID**: `cpt-nextgear-algo-evaluation-holdout`
 
-**Input**: The training data, the holdout group, and a seed for new sessions
+**Input**: The training data, the holdout group, the further groups and seeds of the repeated test, and a seed for new sessions
 
-**Output**: Scores of models trained without the group on new sessions from it, against the base-prior oracle as a common reference
+**Output**: Scores of models trained without each group on new sessions from it, against the base-prior oracle as a common reference
 
 **Steps**:
 1. [x] - `p1` - Draw new sessions from the base priors and keep 600 whose specification needs the Chat Engine with both the Policy Manager and the License Resolver - `inst-sample`
 2. [x] - `p1` - Remove that group from training and validation and train a GRU on the rest - `inst-exclude`
 3. [x] - `p1` - Refit the count models without the group and compare all of them, and the normal GRU, on the new sessions - `inst-score`
+4. [x] - `p1` - **FOR EACH** configured group and seed, retrain a GRU without the group, refit the n-gram without it, and report the GRU's paired difference from the n-gram and the system-check accuracy of the unseen, n-gram and seen models - `inst-sweep`
 
 ## 4. States (CDSL)
 
@@ -176,3 +177,4 @@ The system **MUST** write `results/report.json` with every metric above, paired 
 - [x] Scores for different events, missing sessions and invalid probabilities are refused.
 - [x] The do() oracle answers every what-if gear verdict correctly.
 - [x] The holdout group is never in the data used to train the holdout models.
+- [x] Every group of the repeated test is drawn from the same pool as the holdout split, and its models are refused if their settings stamp does not match.

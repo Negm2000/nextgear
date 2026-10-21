@@ -10,7 +10,7 @@ from unittest import mock
 import numpy as np
 
 from nextgear.baselines import Frequency, NGram, StateCounts
-from nextgear.evaluation import (calibration, in_holdout_group, paired_bootstrap, score, step_types, subset, summarize,
+from nextgear.evaluation import (calibration, in_group, in_holdout_group, paired_bootstrap, score, step_types, subset, summarize,
                                  what_if)
 from nextgear.events import INDEX, VOCAB
 from nextgear.gru import GRUModel
@@ -161,6 +161,15 @@ class StatisticsTests(unittest.TestCase):
         self.assertEqual(result["models"]["oracle"]["unchosen_local_accuracy"], 1.0)
         self.assertEqual(result["models"]["oracle_do"]["unchosen_local_accuracy"], 1.0)
         self.assertGreater(result["unchosen_local_queries"], 0)
+
+    def test_groups_select_the_execution_gear_and_both_flags(self):
+        sessions = generate(500, 94, "source", Priors())
+        group = ("BILLING_LEDGER", "policy", "usage")
+        held = [s for s in sessions if in_group(s, group)]
+        self.assertTrue(0 < len(held) < len(sessions))
+        for s in sessions:
+            spec = s.hidden.spec
+            self.assertEqual(in_group(s, group), spec.execution == "BILLING_LEDGER" and spec.policy and spec.usage)
 
     def test_holdout_group_is_a_strict_partition(self):
         sessions = generate(500, 93, "source", Priors())

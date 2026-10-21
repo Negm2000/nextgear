@@ -33,6 +33,9 @@ class PipelineTests(unittest.TestCase):
             report = json.loads((root / "results" / "report.json").read_text(encoding="utf-8"))
             self.assertEqual(report["next_event"]["sessions"], 40)
             self.assertEqual(report["holdout"]["sessions"], 15)
+            runs = report["holdout_sweep"]["runs"]
+            self.assertEqual(len(runs), len(config["holdout"]["groups"]) * len(config["holdout"]["seeds"]))
+            self.assertTrue(all(run["sessions"] == 15 and run["excluded_train"] > 0 for run in runs))
             for name in ("REPORT.md", "figures/gap.svg", "figures/what-if.svg"):
                 self.assertTrue((root / "results" / name).exists(), name)
 

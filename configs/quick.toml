@@ -56,6 +56,13 @@ max_epochs = 3
 patience = 4
 seeds = [0]
 
+# The repeated exclusion test. Each group is one execution gear with two optional requirements, so
+# together the three cover every execution gear and every pair once. The first is the group in
+# section 6 of the report. Each group is removed from training and validation in turn.
+[holdout]
+groups = [["CHAT_ENGINE", "policy", "license"], ["BILLING_LEDGER", "policy", "usage"]]
+seeds = [0]
+
 [baselines]
 contexts = [1, 3, 6]
 

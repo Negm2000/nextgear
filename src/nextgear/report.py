@@ -100,6 +100,39 @@ def render(report: dict, results_dir: Path) -> None:
     (results_dir / "REPORT.md").write_text(markdown(report), encoding="utf-8", newline="\n")
 
 
+GROUP_NAMES = {"CHAT_ENGINE": "Chat Engine", "BILLING_LEDGER": "Billing Ledger", "SERVERLESS_RUNTIME": "Serverless Runtime",
+               "policy": "Policy Manager", "license": "License Resolver", "usage": "Usage Collector"}
+
+
+def _group(group) -> str:
+    return " + ".join(GROUP_NAMES[g] for g in group)
+
+
+def _sweep_lines(sw: dict) -> list[str]:
+    runs = sw["runs"]
+    below = sum(run["vs_ngram"]["ci95"][1] < 0 for run in runs)
+    above = sum(run["vs_ngram"]["ci95"][0] > 0 for run in runs)
+    def pct(v):
+        return f"{v:.1%}" if v is not None else "–"
+
+    return [
+        "", "### Repeated over groups and seeds", "",
+        f"The same test for {len(sw['groups'])} groups and {len(sw['seeds'])} training "
+        f"seed{'s' if len(sw['seeds']) != 1 else ''} each. Each group is one "
+        "execution gear with two optional requirements; it is removed from training and validation, the n-gram "
+        "is refit without it, and a GRU is retrained for each seed and scored on new sessions of that group. "
+        "\"Seen\" is the normal GRU with the same seed. The oracle is the same common reference as above.", "",
+        "| Excluded group | Seed | Log loss | Gap to oracle | Difference from n-gram [95% interval] | "
+        "System checks: unseen GRU | n-gram | seen GRU |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
+        *(f"| {_group(run['group'])} | {run['seed']} | {run['log_loss']:.4f} | {run['excess']:.4f} | "
+          f"{_ci(run['vs_ngram'])} | {run['system_accuracy']:.1%} | {run['ngram_system_accuracy']:.1%} | "
+          f"{pct(run['seen_system_accuracy'])} |" for run in runs),
+        "", f"In {below} of {len(runs)} runs the retrained GRU's interval against the n-gram lies entirely below "
+        f"zero, and in {above} entirely above it.",
+    ]
+
+
 def markdown(r: dict) -> str:
     ne, meta = r["next_event"], r["meta"]
     best = ne["best_ngram"]
@@ -192,6 +225,8 @@ def markdown(r: dict) -> str:
           f"{m['system check']['accuracy']:.1%} |" for n, m in h["models"].items()),
         "", "| Comparison | Steps | Difference [95% interval] |", "|---|---|---:|", *_paired_rows(h["paired"]),
     ]
+    if "holdout_sweep" in r:
+        lines += _sweep_lines(r["holdout_sweep"])
     lines += ["", "## 7. Training", "", "| Model | Epochs | Best validation log loss |", "|---|---:|---:|",
               *(f"| {label(t['model'])} | {t['epochs']} | {t['validation_log_loss']:.4f} |" for t in r["training"]),
               "", "Stage times (seconds): " + ", ".join(f"{k} {v:.0f}" for k, v in seconds.items()) + ".", "",

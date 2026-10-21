@@ -1,4 +1,4 @@
-"""nextgear command line: all | train | evaluate | demo | hero."""
+"""nextgear command line: all | train | evaluate | sweep | demo | hero."""
 
 import argparse
 import os
@@ -26,6 +26,7 @@ def main(argv: list[str] | None = None) -> int:
     commands.add_parser("all", help="generate data, train every model, evaluate, write the report")
     commands.add_parser("train", help="generate data if needed and train the GRUs")
     commands.add_parser("evaluate", help="evaluate the trained models and write the report")
+    commands.add_parser("sweep", help="retrain and rerun only the repeated exclusion test")
     demo = commands.add_parser("demo", help="replay a held-out session in the terminal")
     demo.add_argument("--session", type=int, help="index into the test split")
     demo.add_argument("--what-if", type=int, help="event position of the decision to question")
@@ -45,9 +46,14 @@ def main(argv: list[str] | None = None) -> int:
         benchmark.run(config, args.data_dir, args.models_dir, args.results_dir, args.threads,
                       train=args.command == "all")
         return 0
+    if args.command == "sweep":
+        benchmark.run_sweep(config, args.data_dir, args.models_dir, args.results_dir, args.threads, train=True)
+        return 0
     data = benchmark.load_data(config, args.data_dir)
     if args.command == "train":
         benchmark.run_training(config, data, args.models_dir, args.threads)
+        if "holdout" in config:
+            benchmark.train_sweep(config, data, args.models_dir, args.threads)
         return 0
     benchmark.check_models(config, args.models_dir)
     gru = GRUModel.load(args.models_dir / f"gru_seed{config['model']['seeds'][0]}.pt")

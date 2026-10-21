@@ -161,7 +161,16 @@ def what_if(predictors: dict, sessions, priors: Priors, interventional=None) -> 
     return results
 
 
+HOLDOUT_GROUP: tuple[str, ...] = ("CHAT_ENGINE", "policy", "license")
+
+
+def in_group(session, group) -> bool:
+    """True when the session's specification needs the group's execution gear and both optional gears.
+    A group is written as (execution gear, flag, flag) with flags from policy, license and usage."""
+    spec = session.hidden.spec
+    return spec.execution == group[0] and all(getattr(spec, flag) for flag in group[1:])
+
+
 def in_holdout_group(session) -> bool:
     """The specification combination removed from training for the generalization test."""
-    spec = session.hidden.spec
-    return spec.execution == "CHAT_ENGINE" and spec.policy and spec.license
+    return in_group(session, HOLDOUT_GROUP)
