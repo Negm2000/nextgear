@@ -112,6 +112,9 @@ def _sweep_lines(sw: dict) -> list[str]:
     runs = sw["runs"]
     below = sum(run["vs_ngram"]["ci95"][1] < 0 for run in runs)
     above = sum(run["vs_ngram"]["ci95"][0] > 0 for run in runs)
+    beats_ngram = sum(run["system_accuracy"] > run["ngram_system_accuracy"] for run in runs)
+    paired = [run for run in runs if run["seen_system_accuracy"] is not None]
+    behind_seen = sum(run["system_accuracy"] < run["seen_system_accuracy"] for run in paired)
     def pct(v):
         return f"{v:.1%}" if v is not None else "–"
 
@@ -129,7 +132,9 @@ def _sweep_lines(sw: dict) -> list[str]:
           f"{_ci(run['vs_ngram'])} | {run['system_accuracy']:.1%} | {run['ngram_system_accuracy']:.1%} | "
           f"{pct(run['seen_system_accuracy'])} |" for run in runs),
         "", f"In {below} of {len(runs)} runs the retrained GRU's interval against the n-gram lies entirely below "
-        f"zero, and in {above} entirely above it.",
+        f"zero, and in {above} entirely above it. On system checks the retrained GRU is more accurate than the "
+        f"n-gram in {beats_ngram} of {len(runs)} runs and less accurate than the GRU that saw the group in "
+        f"{behind_seen} of {len(paired)}.",
     ]
 
 

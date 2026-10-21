@@ -18,7 +18,7 @@ A simulated agent builds an application from sixteen gears, one proposal at a ti
 
 1. **It predicts verdicts that depend on information it never sees.** From raw events alone, the GRU gets 89.4% of pass/fail verdicts right. A six-event n-gram gets 66.1%, a count model given the assembly directly 82.4%, and the exact oracle 91.5%.
 2. **It gets most of the way to the best possible score.** On 2,000 held-out sessions it closes 86% of the log-loss gap between the best n-gram and the oracle; across three training seeds, 82–86%.
-3. **In one test, it generalises to a requirement combination it never saw.** Trained without the Chat Engine + Policy Manager + License Resolver combination, it still gets 76.3% of those sessions' verdicts right, against 58.5% for the n-gram. This is one group and one seed, and the test failed under the earlier hand-written rules (see [the limits](#how-the-evaluation-works-and-its-limits)).
+3. **It partly generalises to requirement combinations it never saw.** Three combinations were each removed from training in turn, with three training seeds each. In all nine runs the retrained GRU still beats the n-gram on new sessions of the missing combination, with every 95% interval below zero. On their pass/fail verdicts it averages 74.9%, against 60.8% for the n-gram and 87.6% for a GRU that saw them. It also varies widely between seeds, from 59% to 90%. Under the earlier hand-written rules this test failed (see [the limits](#how-the-evaluation-works-and-its-limits)).
 4. **It degrades when the agent changes.** A sloppier agent triples its distance from the oracle, from 0.035 to 0.105 nats per event, although it stays far ahead of both count models.
 
 **Built with Constructor Fabric.** Two parts of Fabric are built in:
@@ -119,7 +119,11 @@ The GRU's paired log-loss difference from the n-gram is −0.2202 nats per event
 
 - **Repeated traces.** The simulator still repeats itself: 628 of the 2,000 test sessions match a training session event for event. On the other 1,372, the GRU's difference from the n-gram is −0.2476 [−0.2555, −0.2398]. This rules out recall of whole traces, not reuse of familiar prefixes.
 - **Changed agent.** The GRU's difference from the n-gram is −0.4207 [−0.4310, −0.4105], and from the state counts −0.3028 [−0.3106, −0.2951].
-- **Excluded combination.** Removing the group took 688 sessions out of training. On 600 new sessions of that kind, the retrained GRU's difference from the n-gram is −0.2283 [−0.2413, −0.2152]. Its difference from the GRU that saw such sessions is +0.0653 [+0.0620, +0.0687].
+- **Excluded combinations.** The three groups are Chat Engine + Policy Manager + License Resolver, Billing Ledger + Policy Manager + Usage Collector, and Serverless Runtime + License Resolver + Usage Collector. Together they exclude every execution gear and every pair of optional gears once. Each removes between 671 and 688 sessions from training and is scored on 600 new ones.
+  - The retrained GRU's difference from the n-gram ranges from −0.152 to −0.228 nats per event across the nine runs.
+  - On system checks it beats the n-gram in 8 of 9 runs; the exception is a Billing Ledger seed at 59.1% against 63.8%.
+  - It falls short of the GRU that saw the group in all nine.
+  - The [full table](results/REPORT.md#repeated-over-groups-and-seeds) lists every run.
 - **Untaken actions.** At 7,990 decision points in 400 test sessions, every model was asked what the checks would say to each of the sixteen gears and to a submission. Local verdicts depend only on the visible assembly, and the GRU gets 99.76% of them right for gears the agent did not propose.
 - **Forced submissions.** These pass 4.7% of the time, and the GRU predicts 4.8% on average. A submission the agent chose to make is evidence that it thought the assembly was ready, and a forced one is not. Here that evidence shows mainly in the log loss. The oracle scores 0.1174 when it treats forced submissions as observations and 0.0885 when it treats them as interventions; the GRU, trained on logs, scores 0.1776. Predicting the next logged event is not the same as predicting the consequence of an action.
 
@@ -131,11 +135,11 @@ Splits use separate random streams and whole sessions. N-gram context and GRU ea
 
 The intervals are conditional on the fitted models and on the simulator. They cover neither simulator misspecification nor every source of training variation. The analyses are exploratory, with no preregistration or multiple-comparison correction. Every model learns a simulator whose dependencies are Fabric's but whose agent and probabilities are authored, and it may exploit their regularities.
 
-The excluded-combination result needs particular care. In the first version of this simulator, whose composition rules were hand-written, the same test failed. There the retrained GRU's difference from the n-gram was +0.0068 [−0.0092, +0.0233], and it got 34.8% of system verdicts right. The rules were replaced with the gears-rust dependencies, and committed, before the run reported here. A plausible reading is that the real dependency graph gives combinations more shared structure to learn from, but one group and one seed cannot establish that.
+The excluded-combination result needs particular care. In the first version of this simulator, whose composition rules were hand-written, the test failed for its one group. There the retrained GRU's difference from the n-gram was +0.0068 [−0.0092, +0.0233], and it got 34.8% of system verdicts right. The rules were replaced with the gears-rust dependencies, and committed, before the runs reported here. Under the new rules the test passes for all three groups and all three seeds. A plausible reading is that the real dependency graph gives combinations more shared structure to learn from. But the groups come from one simulator with one agent, so this is evidence about the simulator, not about real composition traces.
 
 The next steps would be:
 
-1. Vary the excluded combination and the training seed.
+1. Exclude larger or structurally different groups, such as everything built on one execution gear, and find which system verdicts the unseen GRU gets wrong.
 2. Sample boundary cases.
 3. Try a state-aware probabilistic model.
 4. Test on independent or real composition traces.
@@ -151,10 +155,10 @@ python -m unittest discover -s tests -v
 python -m nextgear --config configs/quick.toml --data-dir runs/quick/data --models-dir runs/quick/models --results-dir runs/quick/results all
 ```
 
-The second command runs the whole pipeline at toy sizes, so its numbers mean nothing. `python -m nextgear all` reproduces the recorded experiment. That run took **1,422 seconds** with 4 CPU threads on Linux (Python 3.12.3, PyTorch 2.14.1); runtime depends on hardware.
+The second command runs the whole pipeline at toy sizes, so its numbers mean nothing. `python -m nextgear all` reproduces the recorded experiment, including the repeated exclusion test. With 4 CPU threads on Linux (Python 3.12.3, PyTorch 2.14.1), the main experiment took **1,422 seconds** and the repeated test another **2,398 seconds**; runtime depends on hardware.
 
 - `--threads 4` limits CPU use. Global options go before the command.
-- `train`, `evaluate`, `demo --session 12` and `hero --out assets/session.svg` also run on their own.
+- `train`, `evaluate`, `demo --session 12` and `hero --out assets/session.svg` also run on their own. `sweep` retrains and reruns only the repeated exclusion test, leaving the main checkpoints and results alone.
 - `all` overwrites datasets, checkpoints and results in the selected directories, so point it at `runs/` paths to keep the reference artifacts.
 
 `requirements-lock.txt` pins the library versions of the recorded run. To reproduce that environment, install it before `pip install -e .`; otherwise dependencies resolve from `pyproject.toml`. Floating-point results can vary across hardware and PyTorch versions. The settings stamp catches configuration mismatches; it is not a file-integrity manifest. After editing dataset contents by hand, retrain with `python -m nextgear train` before evaluating. After changing generator logic, delete `data/stamp.txt` so the splits regenerate, then retrain.

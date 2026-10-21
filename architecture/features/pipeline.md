@@ -113,7 +113,7 @@ Commands run to completion; session state belongs to `cpt-nextgear-state-simulat
 
 - [x] `p1` - **ID**: `cpt-nextgear-dod-pipeline-commands`
 
-The command line **MUST** offer `all`, `train`, `evaluate`, `demo` and `hero`, take the configuration and directories as options, and record the runtime, environment and thread count of `all`.
+The command line **MUST** offer `all`, `train`, `evaluate`, `sweep`, `demo` and `hero`, take the configuration and directories as options, and record the runtime, environment and thread count of `all`.
 
 **Implements**:
 - `cpt-nextgear-flow-pipeline-reproduce`
@@ -122,11 +122,11 @@ The command line **MUST** offer `all`, `train`, `evaluate`, `demo` and `hero`, t
 **Constraints**: `cpt-nextgear-constraint-cpu-only`
 
 **Touches**:
-- CLI: `all`, `train`, `evaluate`, `demo`, `hero`
+- CLI: `all`, `train`, `evaluate`, `sweep`, `demo`, `hero`
 - Files: `configs/*.toml`, `assets/session.svg`
 
 ## 6. Acceptance Criteria
 
 - [x] A toy configuration runs end to end, then the demo and the animation, in a test.
 - [x] Models stamped with other settings are refused.
-- [x] The recorded reference run took 1,422 seconds on Linux with 4 CPU threads. Runtime on other machines will differ.
+- [x] The recorded reference run took 1,422 seconds on Linux with 4 CPU threads, and the repeated exclusion test another 2,398 seconds. Runtime on other machines will differ.

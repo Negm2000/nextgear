@@ -1,0 +1,1 @@
+d9a7ea2ce5fba64f{"holdout": {"groups": [["CHAT_ENGINE", "policy", "license"], ["BILLING_LEDGER", "policy", "usage"], ["SERVERLESS_RUNTIME", "license", "usage"]], "seeds": [0, 1, 2]}, "model": {"batch_size": 64, "embedding": 32, "hidden": 128, "learning_rate": 0.003, "max_epochs": 40, "patience": 4, "seeds": [0, 1, 2]}}

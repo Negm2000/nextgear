@@ -74,7 +74,7 @@ cfs validate
 - **Setup.** The five-line root `AGENTS.md` points the CLI to `.cf-studio`, so a clean checkout needs no `cfs init`. On first use the CLI downloads its pinned skill engine. Generated IDE integrations and runtime caches are ignored by Git.
 - **CI.** Validation runs alongside the tests and a small end-to-end experiment. A separate job rebuilds the Rust harness and reruns the registry cross-check.
 
-The last local check validated 12 artifacts and scanned 9 marked source files, with 21/21 traced identifiers and no errors or warnings. The behavioural suite has 37 passing tests. These are local results; hosted CI results are on GitHub.
+The last local check validated 12 artifacts and scanned 9 marked source files, with 21/21 traced identifiers and no errors or warnings. The behavioural suite has 38 passing tests. These are local results; hosted CI results are on GitHub.
 
 Validation checks artifact structure, identifier links and the markers between specifications and code. The tests check the simulator, the extracted dependencies, probabilities, the rule that forecasts use only earlier events, paired scoring and the pipeline. Neither shows that the authored parts of the simulator describe real Fabric systems.
 

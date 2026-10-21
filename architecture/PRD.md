@@ -231,7 +231,7 @@ The system **MUST** keep hidden specifications and future events away from the l
 
 - [x] `p1` - **ID**: `cpt-nextgear-nfr-runtime`
 
-The system **MUST** run on a CPU and record stage timings and the thread count. The measured run, 1,422 seconds on Linux with 4 threads, is reported as a measurement, not a runtime guarantee.
+The system **MUST** run on a CPU and record stage timings and the thread count. The measured runs, 1,422 seconds for the main experiment and 2,398 for the repeated exclusion test on Linux with 4 threads, are reported as measurements, not runtime guarantees.
 
 ### 6.2 NFR Exclusions
 
@@ -241,7 +241,7 @@ No target is set for production availability, security certification, distribute
 
 ### 7.1 Public API Surface
 
-CLI: `python -m nextgear all|train|evaluate|demo|hero`. Predictors provide `predict_session`, `predict_many` and `predict_next`. Their matrices have 31 columns and one row for each predicted event after SESSION_STARTED.
+CLI: `python -m nextgear all|train|evaluate|sweep|demo|hero`. Predictors provide `predict_session`, `predict_many` and `predict_next`. Their matrices have 31 columns and one row for each predicted event after SESSION_STARTED.
 
 ### 7.2 External Integration Contracts
 

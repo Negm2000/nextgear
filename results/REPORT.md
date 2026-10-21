@@ -100,6 +100,24 @@ Sessions whose specification needs the Chat Engine with both the Policy Manager 
 | GRU, combination unseen vs State counts | all | -0.3994 [-0.4120, -0.3869] |
 | GRU, combination unseen vs GRU | all | +0.0653 [+0.0620, +0.0687] |
 
+### Repeated over groups and seeds
+
+The same test for 3 groups and 3 training seeds each. Each group is one execution gear with two optional requirements; it is removed from training and validation, the n-gram is refit without it, and a GRU is retrained for each seed and scored on new sessions of that group. "Seen" is the normal GRU with the same seed. The oracle is the same common reference as above.
+
+| Excluded group | Seed | Log loss | Gap to oracle | Difference from n-gram [95% interval] | System checks: unseen GRU | n-gram | seen GRU |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Chat Engine + Policy Manager + License Resolver | 0 | 0.6442 | 0.1066 | -0.2283 [-0.2413, -0.2152] | 76.3% | 58.5% | 82.0% |
+| Chat Engine + Policy Manager + License Resolver | 1 | 0.7027 | 0.1650 | -0.1699 [-0.1854, -0.1542] | 64.8% | 58.5% | 79.7% |
+| Chat Engine + Policy Manager + License Resolver | 2 | 0.6756 | 0.1380 | -0.1969 [-0.2102, -0.1835] | 74.2% | 58.5% | 82.3% |
+| Billing Ledger + Policy Manager + Usage Collector | 0 | 0.6634 | 0.1169 | -0.1876 [-0.2019, -0.1731] | 70.9% | 63.8% | 93.5% |
+| Billing Ledger + Policy Manager + Usage Collector | 1 | 0.6987 | 0.1522 | -0.1522 [-0.1681, -0.1360] | 59.1% | 63.8% | 92.5% |
+| Billing Ledger + Policy Manager + Usage Collector | 2 | 0.6529 | 0.1064 | -0.1980 [-0.2108, -0.1853] | 89.8% | 63.8% | 92.5% |
+| Serverless Runtime + License Resolver + Usage Collector | 0 | 0.6640 | 0.1151 | -0.2154 [-0.2284, -0.2017] | 80.6% | 60.0% | 88.9% |
+| Serverless Runtime + License Resolver + Usage Collector | 1 | 0.6813 | 0.1323 | -0.1982 [-0.2113, -0.1846] | 76.4% | 60.0% | 88.1% |
+| Serverless Runtime + License Resolver + Usage Collector | 2 | 0.6685 | 0.1195 | -0.2110 [-0.2236, -0.1979] | 81.8% | 60.0% | 89.1% |
+
+In 9 of 9 runs the retrained GRU's interval against the n-gram lies entirely below zero, and in 0 entirely above it. On system checks the retrained GRU is more accurate than the n-gram in 8 of 9 runs and less accurate than the GRU that saw the group in 9 of 9.
+
 ## 7. Training
 
 | Model | Epochs | Best validation log loss |
