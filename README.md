@@ -1,17 +1,32 @@
 # Nextgear
 
-A small neural network watches a simulated agent assemble an application from Constructor Fabric's gears and predicts every next event. That includes whether the final checks will accept the assembly, which depends on requirements the network never sees. Which gear depends on which is not invented. It comes from the `deps` each gear declares in Fabric's gears-rust repository, and the toolkit's own registry agrees with the simulator on all 24,910 assemblies tested. The simulator is fully specified, so an exact Bayes oracle can compute the best possible prediction for its sessions. The benchmark measures how close the network gets to that limit, and where it breaks.
+**A neural network learns to predict, event by event, how an agent assembles Constructor Fabric's gears, and an exact Bayes oracle shows how close it comes to the best possible prediction.**
+
+[![checks](https://github.com/Negm2000/nextgear/actions/workflows/ci.yml/badge.svg)](https://github.com/Negm2000/nextgear/actions/workflows/ci.yml)
+
+| 86% | 89.4% | 24,910 / 24,910 | 1 command |
+|:---:|:---:|:---:|:---:|
+| of the way from a six-event baseline to the best possible score | of pass/fail verdicts predicted from events alone (n-gram: 66.1%) | assemblies on which the simulator agrees with Fabric's real registry | `python -m nextgear demo`, with no training |
+
+A simulated agent builds an application from sixteen gears, one proposal at a time, and the platform's checks accept or reject each step. The rules are not invented. The request order comes from Fabric's documentation, and every dependency comes from the `deps` each gear declares in gears-rust. A one-layer GRU sees only the stream of events. An exact Bayes oracle averages over every possible hidden requirement and marks the best any such predictor can do.
 
 ![A held-out session replayed event by event: the request path, the platform gears, forecasts made before each event, and the oracle's belief about the hidden specification.](assets/session.svg)
 
-*One held-out session, frame by frame. A sloppy agent builds a Billing Ledger application and submits it without three platform gears. The dependency check rejects it, the agent adds the Types Registry, the Account Manager and the Resource Group, and the assembly passes. Gears-rust's `bss-ledger` needs the first two directly and the third through `account-management`. (a) The events so far. (b) The forecast of the next event, made before it happened: filled bars are the GRU, outlines the oracle. (c) The oracle's belief about the hidden specification. The session was chosen, not sampled. Among test sessions of at most 32 events that have a rejected gear and a failed dependency check and still end admissible, this is the one where the GRU forecast its system-check failures most confidently.*
+*A held-out session. The dependency check rejects a Billing Ledger assembly that is missing three platform gears, and the agent repairs it. The middle panel shows the forecast made before each event (blue: GRU; outline: oracle); the right panel shows the oracle's belief about the hidden requirements. The session was chosen by a stated rule, not sampled: [`pick_hero_session`](src/nextgear/demo.py).*
 
 ## What it shows
 
-1. **It predicts verdicts that depend on information it never sees.** Whether a submitted assembly passes depends on the hidden specification and on whether every declared dependency is present. The GRU is trained on raw event IDs alone and gets 89.4% of these verdicts right. A six-event n-gram gets 66.1%, a count model given the reconstructed assembly 82.4%, and the exact oracle 91.5%.
-2. **It gets most of the way to the best possible score.** Over 87,696 predicted events in 2,000 held-out sessions, it closes **86% of the log-loss gap** between the best n-gram and the oracle. The other two training seeds close 82% and 83%.
-3. **In one test, it transfers to a requirement combination it has never seen.** When the Chat Engine with both the Policy Manager and the License Resolver is removed from training, the retrained GRU still beats the n-gram on new sessions of that kind. It gets 76.3% of their system verdicts right, against 58.5% for the n-gram and 82.0% for the GRU that saw such sessions. This is one excluded group and one seed, and the same test failed in an earlier version of the simulator (see the limits below).
-4. **It degrades when the agent changes.** With a sloppier agent and a different requirement mix, and no retraining, its excess loss over the oracle triples, from 0.035 to 0.105 nats per event. It stays far ahead of both count models.
+1. **It predicts verdicts that depend on information it never sees.** From raw events alone, the GRU gets 89.4% of pass/fail verdicts right. A six-event n-gram gets 66.1%, a count model given the assembly directly 82.4%, and the exact oracle 91.5%.
+2. **It gets most of the way to the best possible score.** On 2,000 held-out sessions it closes 86% of the log-loss gap between the best n-gram and the oracle; across three training seeds, 82–86%.
+3. **In one test, it generalises to a requirement combination it never saw.** Trained without the Chat Engine + Policy Manager + License Resolver combination, it still gets 76.3% of those sessions' verdicts right, against 58.5% for the n-gram. This is one group and one seed, and the test failed under the earlier hand-written rules (see [the limits](#how-the-evaluation-works-and-its-limits)).
+4. **It degrades when the agent changes.** A sloppier agent triples its distance from the oracle, from 0.035 to 0.105 nats per event, although it stays far ahead of both count models.
+
+**Built with Constructor Fabric.** Two parts of Fabric are built in:
+
+- **Gears supplies the domain:** gear names, request order and dependency graph. A Rust harness cross-checks the dependency rule against the real registry in CI.
+- **Studio supplies the workflow:** requirements, decisions and specifications, linked to the code and validated in CI.
+
+[How each was used](FABRIC_USAGE.md)
 
 ## Try it
 
