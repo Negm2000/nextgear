@@ -64,9 +64,9 @@ The demo then asks what the checks would have said to every gear the agent could
 
 ## How it works
 
-![The sixteen gears an agent can assemble: the request path in documented order, the three execution gears, optional gears, the outbound gateway and the platform gears, with every dependency declared in gears-rust.](assets/gears.svg)
+![The request path in documented order, and the platform gears that the dependencies declared in gears-rust pull in.](assets/gears.svg)
 
-*What the agent assembles. The top row is the request path in documented order, and every grey arrow is a dependency that gears-rust declares.*
+*What the agent assembles: the request path from Fabric's documentation, and the platform gears that Fabric's declared dependencies pull in.*
 
 Each session draws a hidden specification (one execution gear, any of the dashed gears, a tight or loose latency budget) and an agent that is careful or sloppy and may not know about the outbound gateway or the platform dependencies. The agent proposes the gear it needs next, but picks another action 5% of the time if careful and 25% if sloppy. Local checks reject proposals out of order. The system check reports the first of: a missing gear, a missing dependency, an unguarded external call, an unneeded gear, or latency over budget. The agent then repairs the assembly and resubmits, until it passes or the agent runs out of budget. The probabilities, frequencies, check order, latencies and budgets are this project's assumptions. The [31 events](src/nextgear/events.py) and the [state machine](assets/states.svg) give every detail.
 

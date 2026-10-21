@@ -1,82 +1,77 @@
 % Render: latex gears.tex && dvisvgm --no-fonts --bbox=papersize gears.dvi -o gears.svg
-% The gears an application can need. Dependency arrows are the `deps` of each gear's
-% #[toolkit::gear] declaration in constructorfabric/gears-rust (src/nextgear/fabric_gears.py).
-\documentclass[tikz,border=10pt]{standalone}
+% What an agent assembles. The chains are the `deps` of each gear's #[toolkit::gear]
+% declaration in constructorfabric/gears-rust (src/nextgear/fabric_gears.py).
+\documentclass[tikz,border=12pt]{standalone}
 \pagecolor{white}
-\usetikzlibrary{arrows.meta,fit,positioning}
+\usetikzlibrary{arrows.meta,positioning}
 
 \begin{document}
 \begin{tikzpicture}[
-  >={Stealth[length=2.2mm]},
-  gear/.style={draw, thick, rounded corners=2pt, minimum width=28mm, minimum height=8mm, font=\small, fill=white,
-               align=center},
+  >={Stealth[length=2.4mm]},
+  gear/.style={draw, thick, rounded corners=2pt, minimum width=30mm, minimum height=10mm, align=center, fill=white},
   optional/.style={gear, dashed},
-  platform/.style={gear, fill=black!8},
+  platform/.style={gear, fill=black!10},
   order/.style={->, very thick},
-  dep/.style={->, semithick, black!50},
-  assumed/.style={->, semithick, densely dotted},
-  note/.style={font=\footnotesize\itshape, text=black!65},
-  bar/.style={draw, fill=black!8, rounded corners=2pt, minimum height=7mm, font=\small, inner xsep=6pt},
+  dep/.style={->, thick, black!55},
+  assumed/.style={->, thick, densely dotted},
+  heading/.style={font=\large\bfseries, anchor=west},
+  note/.style={font=\small\itshape, text=black!60, anchor=north west},
+  node distance=6mm,
 ]
 
-% Request path, in the order docs/GEARS.md gives.
+% 1. The request path, in the order docs/GEARS.md gives.
+\node[heading] at (-1.5, 1.6) {1.\ The request path, in documented order};
 \node[gear]     (api)     at (0, 0)    {API Gateway};
-\node[gear]     (authn)   at (3.4, 0)  {Auth Resolver};
-\node[optional] (policy)  at (6.8, 0)  {Policy Manager};
-\node[optional] (license) at (10.2, 0) {License Resolver};
-\node[gear]     (chat)    at (14, 1.1) {Chat Engine};
-\node[gear]     (serverless) at (14, 0) {Serverless Runtime};
-\node[gear]     (ledger)  at (14, -1.1) {Billing Ledger};
-\node[draw, densely dashed, rounded corners=4pt, inner sep=5pt, fit=(chat)(ledger),
-      label={[note]below:one execution gear}] (exec) {};
+\node[gear]     (authn)   at (3.6, 0)  {Auth Resolver};
+\node[optional] (policy)  at (7.2, 0)  {Policy Manager};
+\node[optional] (license) at (10.8, 0) {License Resolver};
+\node[gear, minimum height=22mm] (exec) at (14.4, 0) {\textit{one of}\\[2pt] Chat Engine\\ Billing Ledger\\ Serverless Runtime};
 \node[gear]     (tenant)  at (18, 0)   {Tenant Resolver};
-\node[optional] (usage)   at (21.4, 0) {Usage Collector};
-\node[gear]     (oagw)    at (14, 3.3) {Outbound API Gateway};
+\node[optional] (usage)   at (21.6, 0) {Usage Collector};
+\foreach \a/\b in {api/authn, authn/policy, policy/license, license/exec, exec/tenant, tenant/usage}
+  \draw[order] (\a) -- (\b);
 
-\draw[order] (api) -- (authn);
-\draw[order] (authn) -- (policy);
-\draw[order] (policy) -- (license);
-\draw[order] (license) -- (exec.west |- license);
-\draw[order] (exec.east |- tenant) -- (tenant);
-\draw[order] (tenant) -- (usage);
+% 2. What the declared dependencies pull in.
+\node[heading] at (-1.5, -2.6) {2.\ What the dependencies declared in gears-rust pull in};
 
-% External calls go through the outbound gateway: the rule is documented, which gears call out is assumed.
-\draw[assumed] (exec.north) -- (oagw.south);
-\node[note, left=3mm of oagw, align=right] {Chat Engine and Serverless Runtime\\call external services};
+\node[gear]     (c1a) at (0, -4)    {API Gateway};
+\node[platform, right=of c1a] (c1b) {gRPC Hub};
+\draw[dep] (c1a) -- (c1b);
 
-% Platform gears, off the request path.
-\node[platform] (grpc)    at (0, -3.6)    {gRPC Hub};
-\node[platform] (account) at (10.2, -3.6) {Account Manager};
-\node[platform] (rgroup)  at (6.8, -3.6)  {Resource Group};
-\node[platform] (creds)   at (18, 3.3)    {Credentials Store};
+\node[gear]     (c2a) at (0, -5.6)  {Billing Ledger};
+\node[platform, right=of c2a] (c2b) {Account Manager};
+\node[platform, right=of c2b] (c2c) {Resource Group};
+\draw[dep] (c2a) -- (c2b);
+\draw[dep] (c2b) -- (c2c);
 
-% Declared dependencies (except the two shared ones below).
-\draw[dep] (api) -- (grpc);
-\draw[dep] (api.north) to[bend left=35] (authn.north);
-\draw[dep] (policy.north) to[out=35, in=150] ([xshift=-6mm]tenant.north);
-\draw[dep] (ledger.west) to[out=180, in=90] (account.north);
-\draw[dep] (ledger.east) to[out=0, in=-120] (tenant.south);
-\draw[dep] (account) -- (rgroup);
-\draw[dep] (account.south) to[out=-30, in=-90] ([xshift=4mm]tenant.south);
-\draw[dep] (oagw) -- (creds);
-\draw[dep] (oagw.south east) -- ([xshift=-2mm]tenant.north);
-\draw[dep] (creds.south) -- ([xshift=4mm]tenant.north);
+\node[gear, font=\small] (c3a) at (0, -7.2) {Chat Engine or\\ Serverless Runtime};
+\node[gear, right=of c3a] (c3b) {Outbound API Gateway};
+\node[platform, right=of c3b] (c3c) {Credentials Store};
+\draw[assumed] (c3a) -- (c3b);
+\draw[dep] (c3b) -- (c3c);
 
-% The two gears that most others declare.
-\node[bar, minimum width=242mm, anchor=north west] (authz) at (-1.4, -5.1)
-  {Authorization Resolver \enspace{\footnotesize\itshape declared by 8 of the 16 gears}};
-\node[bar, minimum width=242mm, anchor=north west] (types) at (-1.4, -6.1)
-  {Types Registry \enspace{\footnotesize\itshape declared by 11 of the 16 gears}};
+\node[gear, text width=38mm, font=\small] (c4a) at (14.4, -4.5)
+  {Policy Manager\\ Billing Ledger\\ Outbound API Gateway};
+\node[gear, right=of c4a] (c4b) {Tenant Resolver};
+\node[note, below=1mm of c4b.south west] {so every assembly needs it};
+\draw[dep] (c4a) -- (c4b);
+
+\node[gear, text width=38mm, font=\small] (c5a) at (14.4, -6.6) {11 of the 16 gears};
+\node[platform, right=of c5a] (c5b) {Types Registry};
+\draw[dep] (c5a) -- (c5b);
+\node[gear, text width=38mm, font=\small] (c6a) at (14.4, -7.8) {8 of the 16 gears};
+\node[platform, right=of c6a] (c6b) {Authorization Resolver};
+\draw[dep] (c6a) -- (c6b);
 
 % Legend.
-\begin{scope}[shift={(-1.4, -7.9)}, every node/.style={font=\footnotesize, anchor=west}]
-  \draw[order] (0, 0) -- (0.9, 0); \node at (1.0, 0) {request order, from \texttt{docs/GEARS.md}};
-  \draw[dep] (7.0, 0) -- (7.9, 0); \node at (8.0, 0) {declared dependency, from \texttt{\#[toolkit::gear(deps)]}};
-  \draw[assumed] (15.9, 0) -- (16.8, 0); \node at (16.9, 0) {this project's assumption};
-  \node[draw, dashed, minimum width=5mm, minimum height=3mm] at (0, -0.6) {};
-  \node at (0.6, -0.6) {needed only if the specification asks for it};
-  \node[draw, fill=black!8, minimum width=5mm, minimum height=3mm] at (7.0, -0.6) {};
-  \node at (7.6, -0.6) {platform gear, off the request path};
+\begin{scope}[shift={(-1.5, -9.6)}, every node/.style={font=\small, anchor=west}]
+  \draw[order] (0, 0) -- (1, 0);         \node at (1.1, 0) {request order (\texttt{docs/GEARS.md})};
+  \draw[dep] (8.1, 0) -- (9.1, 0);       \node at (9.2, 0) {declared dependency (\texttt{\#[toolkit::gear(deps)]})};
+  \draw[assumed] (17.4, 0) -- (18.4, 0); \node at (18.5, 0) {this project's assumption};
+  \node[draw, dashed, minimum width=6mm, minimum height=4mm] at (0.3, -0.7) {};
+  \node at (1.1, -0.7) {needed only if the specification asks for it};
+  \node[draw, fill=black!10, minimum width=6mm, minimum height=4mm] at (8.4, -0.7) {};
+  \node at (9.0, -0.7) {platform gear, off the request path};
 \end{scope}
 \end{tikzpicture}
 \end{document}
