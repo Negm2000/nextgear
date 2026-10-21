@@ -1,0 +1,38 @@
+name: checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      MPLBACKEND: Agg
+      PYTHONIOENCODING: utf-8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install CPU dependencies and pinned Studio
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e . build ruff "constructor-studio @ git+https://github.com/constructorfabric/studio.git@3e73a118af4108fa45b306e02f20c9692d1bc1d6"
+      - name: Lint
+        run: python -m ruff check src tests
+      - name: Test
+        run: python -m unittest discover -s tests -v
+      - name: Small end-to-end run
+        run: python -m nextgear --threads 2 --config configs/quick.toml --data-dir runs/ci/data --models-dir runs/ci/models --results-dir runs/ci/results all
+      - name: Validate artifacts and code traceability
+        run: cfs validate
+      - name: Build wheel and source distribution
+        run: python -m build

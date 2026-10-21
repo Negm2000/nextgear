@@ -1,0 +1,47 @@
+% Render: latex states.tex && dvisvgm --no-fonts --bbox=papersize states.dvi -o states.svg
+\documentclass[tikz,border=10pt]{standalone}
+\usepackage{amsmath}
+\pagecolor{white}
+\usetikzlibrary{automata,arrows.meta,quotes}
+
+\begin{document}
+\begin{tikzpicture}[
+  >={Stealth[length=2.2mm]},
+  every state/.style={draw, thick, minimum size=15mm, font=\normalsize, inner sep=1pt, fill=white},
+  hidden/.style={fill=black!12},
+  ev/.style={font=\footnotesize\ttfamily, inner sep=4pt},
+  every edge/.style={draw, semithick, ->},
+]
+\node[state, accepting] (done)     at (-13, 0)    {done};
+\node[state, hidden]    (system)   at (-7.2, 0)   {system};
+\node[state, hidden]    (decide)   at (0, 0)      {decide};
+\node[state]            (local)    at (6, 0)      {local};
+\node[state]            (revert)   at (6, -4.4)   {revert};
+\node[state]            (rollback) at (-3.6, 4.4) {rollback};
+\node[state]            (latency)  at (-3.6, -4.4) {latency};
+\node[circle, fill, inner sep=2.2pt] (start) at (3.4, 3.4) {};
+
+\path
+  (start)    edge["SESSION\_STARTED"{ev, above, sloped}] (decide)
+  (decide)   edge[bend left=12, "ADD\_\textit{gear}"{ev, above}] (local)
+  (local)    edge[bend left=12, "STEP\_ACCEPTED"{ev, below}] (decide)
+  (local)    edge["ORDER\_VIOLATION"{ev, right, pos=0.42}, "BYPASS\_VIOLATION"{ev, right, pos=0.58}] (revert)
+  (revert)   edge["STEP\_REVERTED"{ev, below, sloped}] (decide)
+  (decide)   edge[bend right=12, "SUBMIT\_ASSEMBLY"{ev, above}] (system)
+  (system)   edge[bend right=12, "EXTERNAL\_CALL\_VIOLATION"{ev, below}] (decide)
+  (system)   edge["ASSEMBLY\_ADMISSIBLE"{ev, above}] (done)
+  (system)   edge["MISSING\_CAPABILITY"{ev, above, sloped}, "COST\_VIOLATION"{ev, below, sloped}] (rollback)
+  (rollback) edge["ROLLBACK\_ASSEMBLY"{ev, above, sloped}] (decide)
+  (system)   edge["LATENCY\_VIOLATION"{ev, below, sloped}] (latency)
+  (latency)  edge["ENABLE\_RESOLVER\_CACHE"{ev, below, sloped}] (decide)
+  (latency)  edge[out=180, in=-80, "SESSION\_ABANDONED"{ev, below, pos=0.3}] (done);
+
+% Out of budget: an arc high enough to clear the rollback state.
+\draw[semithick, ->] (decide.north) .. controls (0.4, 8.2) and (-13, 8.2) .. (done.north)
+  node[pos=0.5, above, ev] {SESSION\_ABANDONED (out of budget)};
+
+\node[font=\small, align=left, anchor=north west] at (-13.8, -5.6) {%
+  \tikz\node[draw, fill=black!12, minimum size=3.2mm]{}; \; what comes next depends on the agent's choice or the hidden specification $z$\\[3pt]
+  \tikz\node[draw, fill=white, minimum size=3.2mm]{}; \; what comes next follows from the visible events alone};
+\end{tikzpicture}
+\end{document}

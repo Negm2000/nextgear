@@ -1,0 +1,32 @@
+# Constructor Studio runtime and the agent files `cfs generate-agents` writes.
+.cf-studio/.core/
+.cf-studio/.gen/
+.cf-studio/.cache/
+.agents/
+.claude/
+.codex/
+.cursor/
+.opencode/
+.windsurf/
+.github/agents/
+.github/prompts/
+.github/.cf-installed
+/CLAUDE.md
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Generated datasets (rebuilt from seeds in seconds) and scratch runs.
+data/
+runs/
+
+# Local lint cache and TeX build products; keep the .tex and .svg sources.
+.ruff_cache/
+assets/*.aux
+assets/*.dvi
+assets/*.log

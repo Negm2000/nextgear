@@ -1,0 +1,72 @@
+% Render: latex architecture.tex && dvisvgm --no-fonts --bbox=papersize architecture.dvi -o architecture.svg
+\documentclass[tikz,border=10pt]{standalone}
+\usepackage{amsmath,amssymb}
+\pagecolor{white}
+\usetikzlibrary{arrows.meta,calc}
+
+\thickmuskip=5mu plus 1mu
+\medmuskip=4mu plus 1mu
+\newcommand{\module}[2]{\textbf{#1}\\[-1pt]{\footnotesize\texttt{#2}}\\[5pt]}
+
+\begin{document}
+\begin{tikzpicture}[
+  font=\small,
+  >={Stealth[length=2.4mm]},
+  box/.style={draw, thick, fill=white, align=center, inner sep=6pt},
+  predictor/.style={box, text width=44mm, minimum height=27mm},
+  data/.style={draw, fill=black!5, align=center, inner sep=6pt},
+  flow/.style={->, semithick},
+  link/.style={->, semithick, densely dashed},
+  note/.style={font=\footnotesize\itshape, text=black!70},
+]
+
+\node[box, text width=72mm] (sim) at (0, 66mm) {%
+  \module{Generator}{simulator.py \quad rules.py}
+  hidden specification $z \sim p(z)$\\
+  agent proposes $a_t \sim \pi(a \mid s_t, z)$\\
+  checks answer with $v_t = f(s_t, a_t, z)$};
+
+\node[data, text width=72mm] (seq) at (0, 33mm) {%
+  event sequences $e_{1:T}$\\[2pt]
+  {\footnotesize train \enspace$\cdot$\enspace validation \enspace$\cdot$\enspace test\\
+   shifted agent \enspace$\cdot$\enspace unseen combination of requirements}};
+
+\node[predictor] (count) at (-53mm, 0) {%
+  \module{Count baselines}{baselines.py}
+  $n$-gram over the last $k$ events\\
+  counts per visible state $s_t$};
+\node[predictor] (gru) at (0, 0) {%
+  \module{GRU}{gru.py}
+  $h_t = \mathrm{GRU}(h_{t-1}, e_t)$\\[2pt]
+  $p_\theta(e_{t+1} \mid e_{1:t}) = \mathrm{softmax}(W h_t)$};
+\node[predictor] (oracle) at (53mm, 0) {%
+  \module{Bayes oracle}{oracle.py}
+  $\displaystyle\sum_z p(z \mid e_{1:t})\, p(e_{t+1} \mid e_{1:t}, z)$\\[2pt]
+  the best possible forecast};
+
+\node[box, text width=146mm] (eval) at (0, -37mm) {%
+  \module{Evaluation}{evaluation.py \quad benchmark.py}
+  log loss of each forecast $p(e_{t+1} \mid e_{1:t})$ by step type, with a paired session bootstrap\\
+  unseen traces \enspace$\cdot$\enspace a shifted agent \enspace$\cdot$\enspace an unseen combination of requirements\\
+  what-if: the verdict for every gear the agent did not choose, observed vs.\ $\mathrm{do}(a)$};
+
+\node[data] (out) at (0, -67mm) {\texttt{results/report.json} \quad \texttt{results/REPORT.md} \quad figures};
+
+% Main flow
+\draw[flow] (sim) -- node[right, note] {sample} (seq);
+\coordinate (bus) at (0, 17mm);
+\draw[semithick] (seq.south) -- (bus);
+\draw[semithick] (bus -| count.north) -- (bus -| oracle.north);
+\foreach \n in {count, gru, oracle} \draw[flow] (bus -| \n.north) -- (\n.north);
+\node[note, fill=white, inner sep=2pt] at ($(bus)!0.5!(bus -| oracle.north)$) {events only, never $z$};
+\foreach \n in {count, gru, oracle} \draw[flow] (\n.south) -- (\n.south |- eval.north);
+\draw[flow] (eval) -- (out);
+
+% The two places where generator knowledge legitimately flows
+\draw[link] (sim.east) -- ($(sim.east -| oracle.east) + (9mm, 0)$) node[pos=0.55, above, note] {equations and $p(z)$}
+            |- (oracle.east);
+\draw[link] (sim.west) -- ($(sim.west -| count.west) + (-9mm, 0)$) node[pos=0.55, above, note] {true verdicts}
+            |- (eval.west);
+
+\end{tikzpicture}
+\end{document}

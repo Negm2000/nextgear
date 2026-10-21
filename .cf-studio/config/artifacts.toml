@@ -1,0 +1,44 @@
+# Constructor Studio artifacts registry
+
+[[systems]]
+name = "Nextgear"
+slug = "nextgear"
+kit = "sdlc"
+children = []
+
+[[systems.autodetect]]
+kit = "sdlc"
+system_root = "{project_root}"
+artifacts_root = "architecture"
+
+[systems.autodetect.artifacts.PRD]
+pattern = "PRD.md"
+traceability = "FULL"
+required = true
+
+[systems.autodetect.artifacts.DESIGN]
+pattern = "DESIGN.md"
+traceability = "FULL"
+required = true
+
+[systems.autodetect.artifacts.ADR]
+pattern = "ADR/**/*.md"
+traceability = "FULL"
+required = false
+
+[systems.autodetect.artifacts.DECOMPOSITION]
+pattern = "DECOMPOSITION.md"
+traceability = "FULL"
+required = true
+
+[systems.autodetect.artifacts.FEATURE]
+pattern = "features/*.md"
+traceability = "FULL"
+required = false
+
+[[systems.autodetect.codebase]]
+name = "Nextgear"
+path = "src/nextgear"
+extensions = [".py"]
+singleLineComments = ["#"]
+multiLineComments = [{start = '"""', end = '"""'}]

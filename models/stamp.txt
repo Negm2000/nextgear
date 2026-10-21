@@ -1,0 +1,1 @@
+2b39aef2a98fc4d1{"batch_size": 64, "embedding": 32, "hidden": 128, "learning_rate": 0.003, "max_epochs": 40, "patience": 4, "seeds": [0, 1, 2]}
