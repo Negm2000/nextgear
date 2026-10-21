@@ -48,7 +48,7 @@ Nextgear tests whether a recurrent model predicts the events of a gear-assembly 
 
 ### 1.2 Background / Problem Statement
 
-The take-home assignment asks for a self-chosen sequence of discrete events with short descriptions, a separate generator of meaningful synthetic sequences, a next-event predictor developed using Constructor Fabric, a statistical benchmark and a runnable repository. Assembling a request pipeline from gears ties the exercise to the role's interest in synthetic architecture data and in the consequences of composition decisions. Public gear documentation motivates the vocabulary and ordering rules; the stochastic model is authored. See [Fabric usage and sources](../FABRIC_USAGE.md).
+The take-home assignment asks for a self-chosen sequence of discrete events with short descriptions, a separate generator of meaningful synthetic sequences, a next-event predictor developed using Constructor Fabric, a statistical benchmark and a runnable repository. Assembling a request pipeline from gears ties the exercise to the role's interest in synthetic architecture data and in the consequences of composition decisions. Fabric's gear documentation supplies the request order, and the dependencies each gear declares in constructorfabric/gears-rust supply the composition rules; the stochastic agent is authored. See [Fabric usage and sources](../FABRIC_USAGE.md).
 
 ### 1.3 Goals (Business Outcomes)
 
@@ -59,6 +59,7 @@ A reviewer can run a supplied checkpoint, reproduce the experiment, inspect indi
 | Term | Meaning |
 |---|---|
 | Gear | A capability unit the agent proposes for an ordered request path |
+| Platform gear | A gear off the request path that other gears declare as a dependency |
 | Session | A complete event sequence that ends admissible or abandoned |
 | Prefix | The events observed before a forecast |
 | Visible state | The assembly, counters and pending phase, all reconstructible from events |
@@ -110,7 +111,7 @@ Python 3.12 on a CPU, with local files. Once dependencies are installed, no serv
 
 ### 4.1 In Scope
 
-Twenty-four events, ten gears, seeded sessions, count baselines, a GRU, a Bayesian reference, probability scores, session-clustered intervals, tests on novel traces, a changed agent and an excluded requirement group, one-step what-if queries, and a demonstration.
+Thirty-one events, sixteen gears, seeded sessions, count baselines, a GRU, a Bayesian reference, probability scores, session-clustered intervals, tests on novel traces, a changed agent and an excluded requirement group, one-step what-if queries, and a demonstration.
 
 ### 4.2 Out of Scope
 
@@ -124,7 +125,7 @@ Production Fabric gears, GearSpec/AppGraph, mining real code, deployment, and me
 
 - [x] `p1` - **ID**: `cpt-nextgear-fr-event-vocabulary`
 
-The system **MUST** define 24 event names, each with a short text description, and represent a session as an ordered sequence of these events.
+The system **MUST** define 31 event names, each with a short text description, and represent a session as an ordered sequence of these events.
 
 #### Session generator
 
@@ -136,7 +137,7 @@ The system **MUST** generate complete seeded sessions in code separate from the 
 
 - [x] `p1` - **ID**: `cpt-nextgear-fr-checks`
 
-The system **MUST** compute local and whole-system verdicts from explicit rules, and mark which rules come from domain documentation and which are authored assumptions.
+The system **MUST** compute local and whole-system verdicts from explicit rules, take gear dependencies from the gears-rust declarations at a pinned commit, check them against the gears-rust registry, and mark which rules come from Fabric and which are authored assumptions.
 
 #### Prediction contract
 
@@ -240,7 +241,7 @@ No target is set for production availability, security certification, distribute
 
 ### 7.1 Public API Surface
 
-CLI: `python -m nextgear all|train|evaluate|demo|hero`. Predictors provide `predict_session`, `predict_many` and `predict_next`. Their matrices have 24 columns and one row for each predicted event after SESSION_STARTED.
+CLI: `python -m nextgear all|train|evaluate|demo|hero`. Predictors provide `predict_session`, `predict_many` and `predict_next`. Their matrices have 31 columns and one row for each predicted event after SESSION_STARTED.
 
 ### 7.2 External Integration Contracts
 
@@ -266,11 +267,11 @@ The test suite checks rule examples, complete seeded sessions, causal prefixes, 
 
 ## 10. Dependencies
 
-NumPy for arrays and statistics, PyTorch for the GRU, matplotlib for figures and Constructor Studio for artifact validation. Versions and install commands are in the README and the lock file.
+NumPy for arrays and statistics, PyTorch for the GRU, matplotlib for figures and Constructor Studio for artifact validation. A Rust toolchain is needed only for the optional registry cross-check. Versions and install commands are in the README and the lock file.
 
 ## 11. Assumptions
 
-Requirement frequencies, the mistake policy, verdict precedence, latency values, budgets and cache effects are authored. Splits come from independent random streams, but identical event sequences can still recur across them. Because the generator and oracle share code, the oracle is an internal reference, not independent validation.
+Requirement frequencies, the mistake policy, verdict precedence, latency values, budgets and cache effects are authored. The dependency graph comes from gears-rust; matching the documented gear names to its crates is this project's reading. Splits come from independent random streams, but identical event sequences can still recur across them. Because the generator and oracle share code, the oracle is an internal reference, not independent validation.
 
 ## 12. Risks
 

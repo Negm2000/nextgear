@@ -93,7 +93,8 @@ class StateCounts:
 
     @staticmethod
     def _contexts(state: State) -> tuple:
-        core = (state.pending, state.gear, state.path, state.outbound, state.cache, state.learned_outbound)
+        core = (state.pending, state.gear, state.path, state.outbound, state.platform, state.cache,
+                state.learned_outbound, state.learned_deps)
         return ((), (state.pending, state.gear), core,
                 (*core, min(state.submissions, 4), min(state.proposals // 10, 4)))
 

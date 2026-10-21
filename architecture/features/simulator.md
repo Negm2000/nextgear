@@ -1,6 +1,6 @@
 ---
 version: 2.0
-description: The 24 events, the checks, and the generator whose transition function the oracle reuses.
+description: The 31 events, the checks, and the generator whose transition function the oracle reuses.
 ---
 
 # Feature: Simulator
@@ -27,7 +27,7 @@ description: The 24 events, the checks, and the generator whose transition funct
 
 <!-- /toc -->
 
-The 24 events, the checks, and the generator whose transition function the oracle reuses.
+The 31 events, the checks, and the generator whose transition function the oracle reuses.
 
 - [x] `p1` - **ID**: `cpt-nextgear-featstatus-simulator`
 ## 1. Feature Context
@@ -36,7 +36,7 @@ The 24 events, the checks, and the generator whose transition function the oracl
 
 ### 1.1 Overview
 
-An agent receives a hidden specification and assembles a request path one gear at a time. A local check answers every proposed gear; a system check answers every submitted assembly. The agent intends to add the next required gear, but with a small probability proposes something else. Everything that happens is written down as a sequence of named events.
+An agent receives a hidden specification and assembles an application one gear at a time: request-path gears in the documented order, the outbound gateway, and the platform gears that the others depend on. A local check answers every proposed gear; a system check answers every submitted assembly. Which gear depends on which comes from the `deps` declarations in constructorfabric/gears-rust, extracted into `fabric_gears.py` at a pinned commit. The agent intends to add the next required gear, but with a small probability proposes something else. Everything that happens is written down as a sequence of named events.
 
 ### 1.2 Purpose
 
@@ -71,12 +71,12 @@ This feature has no user-facing flow; it runs inside `cpt-nextgear-flow-pipeline
 
 - [x] `p1` - **ID**: `cpt-nextgear-algo-simulator-local-check`
 
-**Input**: The current request path, whether the outbound gateway is attached, and the proposed gear
+**Input**: The current request path, whether the outbound gateway is attached, the platform gears present, and the proposed gear
 
 **Output**: STEP_ACCEPTED, ORDER_VIOLATION or BYPASS_VIOLATION
 
 **Steps**:
-1. [x] - `p1` - **IF** the gear is the outbound gateway, accept it unless one is already attached - `inst-outbound`
+1. [x] - `p1` - **IF** the gear is the outbound gateway or a platform gear, accept it unless it is already present - `inst-outbound`
 2. [x] - `p1` - **IF** the gear is an execution gear and the Auth Resolver is not on the path, **RETURN** BYPASS_VIOLATION - `inst-bypass`
 3. [x] - `p1` - Accept the gear only if it comes later in the fixed order than the last gear on the path, and an empty path only takes the API Gateway - `inst-order`
 
@@ -89,10 +89,11 @@ This feature has no user-facing flow; it runs inside `cpt-nextgear-flow-pipeline
 **Output**: The first failing verdict, or ASSEMBLY_ADMISSIBLE
 
 **Steps**:
-1. [x] - `p1` - **IF** a required gear is missing, **RETURN** MISSING_CAPABILITY - `inst-complete`
-2. [x] - `p1` - **IF** the execution gear calls external services and no outbound gateway is attached, **RETURN** EXTERNAL_CALL_VIOLATION - `inst-external`
-3. [x] - `p1` - **IF** the assembly has a gear the specification does not need, **RETURN** COST_VIOLATION - `inst-cost`
-4. [x] - `p1` - **IF** the estimated latency exceeds the budget, **RETURN** LATENCY_VIOLATION; otherwise **RETURN** ASSEMBLY_ADMISSIBLE - `inst-latency`
+1. [x] - `p1` - **IF** a gear the specification needs on the request path is missing, **RETURN** MISSING_CAPABILITY - `inst-complete`
+2. [x] - `p1` - **IF** any present gear declares a dependency that is not present, as the gears-rust registry would refuse to build, **RETURN** MISSING_DEPENDENCY - `inst-dependencies`
+3. [x] - `p1` - **IF** the execution gear calls external services and no outbound gateway is attached, **RETURN** EXTERNAL_CALL_VIOLATION - `inst-external`
+4. [x] - `p1` - **IF** the assembly has a gear that neither the specification nor any dependency needs, **RETURN** COST_VIOLATION - `inst-cost`
+5. [x] - `p1` - **IF** the estimated latency exceeds the budget, **RETURN** LATENCY_VIOLATION; otherwise **RETURN** ASSEMBLY_ADMISSIBLE - `inst-latency`
 
 ### Next-event distribution
 
@@ -104,7 +105,7 @@ This feature has no user-facing flow; it runs inside `cpt-nextgear-flow-pipeline
 
 **Steps**:
 1. [x] - `p1` - **IF** the agent must decide and has used up its proposals or submissions, **RETURN** SESSION_ABANDONED with probability 1 - `inst-budget`
-2. [x] - `p1` - **IF** the agent must decide, give its intended step probability 1 − ε and split ε evenly over the other ten actions, with ε set by whether the agent is careful - `inst-agent`
+2. [x] - `p1` - **IF** the agent must decide, give its intended step probability 1 − ε and split ε evenly over the other sixteen actions, with ε set by whether the agent is careful - `inst-agent`
 3. [x] - `p1` - Otherwise **RETURN** the single event the checks or the bookkeeping rules produce - `inst-checks`
 
 ### Generate a split
@@ -133,10 +134,10 @@ This feature has no user-facing flow; it runs inside `cpt-nextgear-flow-pipeline
 **Transitions**:
 1. [x] - `p1` - **FROM** start **TO** decide **WHEN** SESSION_STARTED - `inst-start`
 2. [x] - `p1` - **FROM** decide **TO** local **WHEN** a gear is proposed, **TO** system **WHEN** SUBMIT_ASSEMBLY, or **TO** done **WHEN** SESSION_ABANDONED - `inst-decide`
-3. [x] - `p1` - **FROM** local **TO** decide **WHEN** STEP_ACCEPTED, adding the gear, or **TO** revert **WHEN** a violation is reported - `inst-local`
+3. [x] - `p1` - **FROM** local **TO** decide **WHEN** STEP_ACCEPTED, adding the gear to the path, the outbound slot or the platform gears, or **TO** revert **WHEN** a violation is reported - `inst-local`
 4. [x] - `p1` - **FROM** revert **TO** decide **WHEN** STEP_REVERTED - `inst-revert`
-5. [x] - `p1` - **FROM** system **TO** done, rollback, decide or latency **WHEN** the verdict is admissible, missing capability or cost, external call, or latency - `inst-system`
-6. [x] - `p1` - **FROM** rollback **TO** decide **WHEN** ROLLBACK_ASSEMBLY, emptying the path - `inst-rollback`
+5. [x] - `p1` - **FROM** system **TO** done, rollback, decide or latency **WHEN** the verdict is admissible, missing capability or cost, external call or missing dependency, or latency - `inst-system`
+6. [x] - `p1` - **FROM** rollback **TO** decide **WHEN** ROLLBACK_ASSEMBLY, emptying the assembly - `inst-rollback`
 7. [x] - `p1` - **FROM** latency **TO** decide **WHEN** ENABLE_RESOLVER_CACHE, or **TO** done **WHEN** SESSION_ABANDONED - `inst-latency`
 
 ## 5. Definitions of Done
@@ -162,7 +163,8 @@ The same configuration and seed **MUST** produce identical sessions, every sessi
 
 ## 6. Acceptance Criteria
 
-- [x] The published gears order is accepted step by step, and bypass and order violations are rejected.
-- [x] System checks fail in the documented order, and the cache halves only resolver latency.
+- [x] The published gears order is accepted step by step, bypass and order violations are rejected, and platform gears are accepted once anywhere.
+- [x] System checks fail in the documented order, the outbound gateway's declared dependency on the Credentials Store is enforced, and the cache halves only resolver latency.
+- [x] The extracted dependencies match the gears-rust declarations at the pinned commit, and the Rust registry harness uses the same commit.
 - [x] Regenerating with the same seed gives identical sessions; truncated traces are rejected on load.
 - [x] There are 384 hidden parameter sets and their prior probabilities sum to one.

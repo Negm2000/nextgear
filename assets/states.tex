@@ -28,7 +28,7 @@
   (local)    edge["ORDER\_VIOLATION"{ev, right, pos=0.42}, "BYPASS\_VIOLATION"{ev, right, pos=0.58}] (revert)
   (revert)   edge["STEP\_REVERTED"{ev, below, sloped}] (decide)
   (decide)   edge[bend right=12, "SUBMIT\_ASSEMBLY"{ev, above}] (system)
-  (system)   edge[bend right=12, "EXTERNAL\_CALL\_VIOLATION"{ev, below}] (decide)
+  (system)   edge[bend right=12, "{EXTERNAL\_CALL\_VIOLATION\\MISSING\_DEPENDENCY}"{ev, below, align=center}] (decide)
   (system)   edge["ASSEMBLY\_ADMISSIBLE"{ev, above}] (done)
   (system)   edge["MISSING\_CAPABILITY"{ev, above, sloped}, "COST\_VIOLATION"{ev, below, sloped}] (rollback)
   (rollback) edge["ROLLBACK\_ASSEMBLY"{ev, above, sloped}] (decide)

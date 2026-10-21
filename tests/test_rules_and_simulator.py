@@ -8,21 +8,44 @@ from dataclasses import replace
 from pathlib import Path
 
 from nextgear.events import EVENTS, LOCAL_VERDICTS, PROPOSALS, SYSTEM_VERDICTS, TERMINALS, VOCAB
-from nextgear.rules import ORDER, Spec, latency_ms, local_verdict, system_verdict
+from nextgear.fabric_gears import COMMIT
+from nextgear.fabric_gears import DEPS as DECLARED
+from nextgear.rules import DEPS, ORDER, OUTBOUND, PLATFORM, Spec, closure, latency_ms, local_verdict, system_verdict
 from nextgear.simulator import (CHOICES, Priors, State, apply, generate, hypotheses, next_distribution, read_sessions,
                                 replay, sample_hidden, write_sessions)
 
 SRC = Path(__file__).resolve().parents[1] / "src" / "nextgear"
+NONE: frozenset[str] = frozenset()
 
 
 class VocabularyTests(unittest.TestCase):
     def test_every_event_has_a_short_description(self):
-        self.assertEqual(len(VOCAB), 24)
+        self.assertEqual(len(VOCAB), 31)
         for name, text in EVENTS.items():
             self.assertTrue(text.endswith("."), name)
             self.assertLess(len(text), 90, name)
         for group in (PROPOSALS, LOCAL_VERDICTS, SYSTEM_VERDICTS, TERMINALS):
             self.assertTrue(set(group) <= set(VOCAB))
+
+
+class FabricDependencyTests(unittest.TestCase):
+    def test_dependencies_are_the_declared_ones(self):
+        # gears/system/oagw/oagw/src/gear.rs: deps = [types_registry, authz_resolver, credstore, tenant_resolver]
+        self.assertEqual(DEPS[OUTBOUND], {"TYPES_REGISTRY", "AUTHZ_RESOLVER", "CREDENTIALS_STORE", "TENANT_RESOLVER"})
+        self.assertEqual(DEPS["API_GATEWAY"], {"GRPC_HUB", "AUTH_RESOLVER"})
+        self.assertEqual(DEPS["SERVERLESS_RUNTIME"], set())  # no gear declaration at this commit
+        self.assertIn("RESOURCE_GROUP", closure({"BILLING_LEDGER"}) - DEPS["BILLING_LEDGER"])
+        for gear, deps in DECLARED.items():
+            self.assertTrue(all(d in DECLARED for d in deps), gear)
+
+    def test_the_registry_harness_uses_the_same_commit(self):
+        cargo = (SRC.parents[1] / "tools" / "registry_check" / "Cargo.toml").read_text(encoding="utf-8")
+        self.assertIn(f'rev = "{COMMIT}"', cargo)
+
+    def test_every_specification_needs_the_tenant_resolver(self):
+        for hidden, _ in hypotheses(Priors()):
+            self.assertIn("TENANT_RESOLVER", hidden.spec.required_path())
+            self.assertEqual(closure(hidden.spec.required()), hidden.spec.required())
 
 
 class LocalCheckTests(unittest.TestCase):
@@ -33,44 +56,57 @@ class LocalCheckTests(unittest.TestCase):
         self.assertEqual(sorted(chain, key=ORDER.get), chain)
         path = ()
         for gear in chain:
-            self.assertEqual(local_verdict(path, False, gear), "STEP_ACCEPTED")
+            self.assertEqual(local_verdict(path, False, NONE, gear), "STEP_ACCEPTED")
             path += (gear,)
 
     def test_bypass_takes_precedence_and_order_is_enforced(self):
-        self.assertEqual(local_verdict(("API_GATEWAY",), False, "BILLING_LEDGER"), "BYPASS_VIOLATION")
-        self.assertEqual(local_verdict((), False, "CHAT_ENGINE"), "BYPASS_VIOLATION")
-        self.assertEqual(local_verdict((), False, "AUTH_RESOLVER"), "ORDER_VIOLATION")
+        self.assertEqual(local_verdict(("API_GATEWAY",), False, NONE, "BILLING_LEDGER"), "BYPASS_VIOLATION")
+        self.assertEqual(local_verdict((), False, NONE, "CHAT_ENGINE"), "BYPASS_VIOLATION")
+        self.assertEqual(local_verdict((), False, NONE, "AUTH_RESOLVER"), "ORDER_VIOLATION")
         path = ("API_GATEWAY", "AUTH_RESOLVER", "LICENSE_RESOLVER")
-        self.assertEqual(local_verdict(path, False, "POLICY_MANAGER"), "ORDER_VIOLATION")
-        self.assertEqual(local_verdict(path, False, "LICENSE_RESOLVER"), "ORDER_VIOLATION")
+        self.assertEqual(local_verdict(path, False, NONE, "POLICY_MANAGER"), "ORDER_VIOLATION")
+        self.assertEqual(local_verdict(path, False, NONE, "LICENSE_RESOLVER"), "ORDER_VIOLATION")
         path += ("CHAT_ENGINE",)
-        self.assertEqual(local_verdict(path, False, "BILLING_LEDGER"), "ORDER_VIOLATION")
-        self.assertEqual(local_verdict(path, False, "OUTBOUND_API_GATEWAY"), "STEP_ACCEPTED")
-        self.assertEqual(local_verdict(path, True, "OUTBOUND_API_GATEWAY"), "ORDER_VIOLATION")
+        self.assertEqual(local_verdict(path, False, NONE, "BILLING_LEDGER"), "ORDER_VIOLATION")
+        self.assertEqual(local_verdict(path, False, NONE, OUTBOUND), "STEP_ACCEPTED")
+        self.assertEqual(local_verdict(path, True, NONE, OUTBOUND), "ORDER_VIOLATION")
+
+    def test_platform_gears_go_anywhere_once(self):
+        for gear in PLATFORM:
+            self.assertEqual(local_verdict((), False, NONE, gear), "STEP_ACCEPTED")
+            self.assertEqual(local_verdict(("API_GATEWAY",), False, frozenset({gear}), gear), "ORDER_VIOLATION")
 
 
 class SystemCheckTests(unittest.TestCase):
     def setUp(self):
-        self.spec = Spec("CHAT_ENGINE", policy=True, license=False, tenant=False, usage=True, budget="tight")
-        self.full = ("API_GATEWAY", "AUTH_RESOLVER", "POLICY_MANAGER", "CHAT_ENGINE", "USAGE_COLLECTOR")
+        self.spec = Spec("CHAT_ENGINE", policy=True, license=False, usage=True, budget="tight")
+        self.path = ("API_GATEWAY", "AUTH_RESOLVER", "POLICY_MANAGER", "CHAT_ENGINE", "TENANT_RESOLVER",
+                     "USAGE_COLLECTOR")
+        self.platform = frozenset({"GRPC_HUB", "TYPES_REGISTRY", "AUTHZ_RESOLVER"})
+        self.full = self.platform | {"CREDENTIALS_STORE"}
 
     def test_checks_apply_in_order_first_failure_wins(self):
-        self.assertEqual(system_verdict(self.spec, self.full[:-1], False, False), "MISSING_CAPABILITY")
-        self.assertEqual(system_verdict(self.spec, self.full, False, False), "EXTERNAL_CALL_VIOLATION")
-        extra = self.full[:3] + ("LICENSE_RESOLVER",) + self.full[3:]
-        self.assertEqual(system_verdict(self.spec, extra, True, False), "COST_VIOLATION")
-        self.assertEqual(system_verdict(self.spec, self.full, True, False), "LATENCY_VIOLATION")
-        self.assertEqual(system_verdict(self.spec, self.full, True, True), "LATENCY_VIOLATION")  # 63 ms > 60 ms
-        self.assertEqual(system_verdict(replace(self.spec, budget="loose"), self.full, True, False),
+        spec, path = self.spec, self.path
+        self.assertEqual(spec.required_path(), path)
+        self.assertEqual(system_verdict(spec, path[:-1], True, self.full, False), "MISSING_CAPABILITY")
+        self.assertEqual(system_verdict(spec, path, False, NONE, False), "MISSING_DEPENDENCY")
+        self.assertEqual(system_verdict(spec, path, False, self.platform, False), "EXTERNAL_CALL_VIOLATION")
+        # The outbound gateway declares a dependency on the Credentials Store.
+        self.assertEqual(system_verdict(spec, path, True, self.platform, False), "MISSING_DEPENDENCY")
+        extra = self.full | {"ACCOUNT_MANAGER", "RESOURCE_GROUP"}
+        self.assertEqual(system_verdict(spec, path, True, extra, False), "COST_VIOLATION")
+        self.assertEqual(system_verdict(spec, path, True, self.full, False), "LATENCY_VIOLATION")  # 74 ms
+        self.assertEqual(system_verdict(spec, path, True, self.full, True), "LATENCY_VIOLATION")  # 65 ms > 60 ms
+        self.assertEqual(system_verdict(replace(spec, budget="loose"), path, True, self.full, False),
                          "ASSEMBLY_ADMISSIBLE")
-        lean = Spec("CHAT_ENGINE", policy=False, license=False, tenant=False, usage=False, budget="tight")
-        path = ("API_GATEWAY", "AUTH_RESOLVER", "CHAT_ENGINE")
-        self.assertEqual(system_verdict(lean, path, True, False), "LATENCY_VIOLATION")  # 61 ms
-        self.assertEqual(system_verdict(lean, path, True, True), "ASSEMBLY_ADMISSIBLE")  # 57 ms
+        lean = Spec("CHAT_ENGINE", policy=False, license=False, usage=False, budget="tight")
+        path = ("API_GATEWAY", "AUTH_RESOLVER", "CHAT_ENGINE", "TENANT_RESOLVER")
+        self.assertEqual(system_verdict(lean, path, True, self.full, False), "LATENCY_VIOLATION")  # 65 ms
+        self.assertEqual(system_verdict(lean, path, True, self.full, True), "ASSEMBLY_ADMISSIBLE")  # 59 ms
 
     def test_cache_halves_resolver_latency_only(self):
-        self.assertEqual(latency_ms(self.full, True, False), 3 + 8 + 6 + 40 + 3 + 10)
-        self.assertEqual(latency_ms(self.full, True, True), 3 + 4 + 3 + 40 + 3 + 10)
+        self.assertEqual(latency_ms(self.path, True, False), 3 + 8 + 6 + 40 + 4 + 3 + 10)
+        self.assertEqual(latency_ms(self.path, True, True), 3 + 4 + 3 + 40 + 2 + 3 + 10)
 
 
 class GeneratorTests(unittest.TestCase):
@@ -128,7 +164,7 @@ class GeneratorTests(unittest.TestCase):
                 read_sessions(path)
 
     def test_generator_does_not_import_predictors_or_evaluation(self):
-        for module in ("events.py", "rules.py", "simulator.py"):
+        for module in ("events.py", "fabric_gears.py", "rules.py", "simulator.py"):
             tree = ast.parse((SRC / module).read_text(encoding="utf-8"))
             imported = {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module}
             self.assertFalse(imported & {"gru", "baselines", "oracle", "evaluation", "benchmark"}, module)

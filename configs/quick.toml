@@ -21,7 +21,6 @@ bootstrap = 6
 execution_weights = [0.3333333333333333, 0.3333333333333333, 0.3333333333333334]
 p_policy = 0.5
 p_license = 0.5
-p_tenant = 0.5
 p_usage = 0.5
 p_tight_budget = 0.35
 p_careful = 0.5
@@ -29,8 +28,10 @@ mistake_careful = 0.05
 mistake_sloppy = 0.25
 knows_outbound_careful = 0.9
 knows_outbound_sloppy = 0.3
-max_proposals = 40
-max_submissions = 4
+knows_deps_careful = 0.9
+knows_deps_sloppy = 0.3
+max_proposals = 60
+max_submissions = 5
 
 # The shifted test split: a different mix of specifications and a sloppier agent.
 [shift]
@@ -41,8 +42,11 @@ mistake_careful = 0.15
 mistake_sloppy = 0.45
 knows_outbound_careful = 0.6
 knows_outbound_sloppy = 0.1
+knows_deps_careful = 0.6
+knows_deps_sloppy = 0.1
 
-# Chosen on validation data during development.
+# Chosen on validation data while developing the earlier, hand-written version of the simulator, and
+# kept unchanged when its rules were replaced by the declared gears-rust dependencies.
 [model]
 embedding = 32
 hidden = 128

@@ -46,7 +46,7 @@ Chosen option: "Gear assembly simulator". Accepted gears, rejected proposals and
 
 ### Consequences
 
-The data are synthetic, so a model can be rewarded for exploiting regularities of the authored rules. No real Fabric checker or deployment runs.
+The data are synthetic, so a model can be rewarded for exploiting regularities of the authored rules. No real Fabric deployment runs. `cpt-nextgear-adr-fabric-dependencies` later replaced the hand-written composition rules with the dependencies the gears declare in gears-rust.
 
 ### Confirmation
 

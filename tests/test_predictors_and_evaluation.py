@@ -103,7 +103,8 @@ class LearnedAndBaselineTests(unittest.TestCase):
     def test_predictors_never_see_hidden_values(self):
         session = Shared.test[0]
         other = replace(session, hidden=replace(session.hidden, careful=not session.hidden.careful,
-                                                spec=Spec("BILLING_LEDGER", False, False, False, False, "loose")))
+                                                knows_deps=not session.hidden.knows_deps,
+                                                spec=Spec("BILLING_LEDGER", False, False, False, "loose")))
         for model in (NGram(3).fit(Shared.events), StateCounts().fit(Shared.events)):
             np.testing.assert_array_equal(model.predict_session(session.events), model.predict_session(other.events))
 

@@ -12,7 +12,7 @@ from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
 from .events import ADD_EVENTS, LOCAL_VERDICTS, SYSTEM_VERDICTS, VOCAB
-from .rules import EXECUTION_GEARS, ORDER, OUTBOUND, Spec, local_verdict, system_verdict
+from .rules import EXECUTION_GEARS, ORDER, OUTBOUND, PLATFORM, Spec, closure, local_verdict, present, system_verdict
 
 EXECUTIONS: tuple[str, ...] = ("CHAT_ENGINE", "BILLING_LEDGER", "SERVERLESS_RUNTIME")
 CHOICES: tuple[str, ...] = (*ADD_EVENTS, "SUBMIT_ASSEMBLY")
@@ -25,7 +25,6 @@ class Priors:
     execution_weights: tuple[float, float, float] = (1 / 3, 1 / 3, 1 / 3)
     p_policy: float = 0.5
     p_license: float = 0.5
-    p_tenant: float = 0.5
     p_usage: float = 0.5
     p_tight_budget: float = 0.35
     p_careful: float = 0.5
@@ -33,12 +32,15 @@ class Priors:
     mistake_sloppy: float = 0.25
     knows_outbound_careful: float = 0.9
     knows_outbound_sloppy: float = 0.3
-    max_proposals: int = 40
-    max_submissions: int = 4
+    knows_deps_careful: float = 0.9
+    knows_deps_sloppy: float = 0.3
+    max_proposals: int = 60
+    max_submissions: int = 5
 
     def __post_init__(self):
-        probabilities = [self.p_policy, self.p_license, self.p_tenant, self.p_usage, self.p_tight_budget,
-                         self.p_careful, self.knows_outbound_careful, self.knows_outbound_sloppy, *self.execution_weights]
+        probabilities = [self.p_policy, self.p_license, self.p_usage, self.p_tight_budget, self.p_careful,
+                         self.knows_outbound_careful, self.knows_outbound_sloppy, self.knows_deps_careful,
+                         self.knows_deps_sloppy, *self.execution_weights]
         if any(not 0 <= p <= 1 for p in probabilities) or abs(sum(self.execution_weights) - 1) > 1e-9:
             raise ValueError("Priors must be probabilities and execution weights must sum to 1.")
         if not 0 < self.mistake_careful < 1 or not 0 < self.mistake_sloppy < 1:
@@ -61,6 +63,7 @@ class Hidden:
     spec: Spec
     careful: bool
     knows_outbound: bool
+    knows_deps: bool
 
 
 @dataclass(frozen=True)
@@ -69,8 +72,10 @@ class State:
 
     path: tuple[str, ...] = ()
     outbound: bool = False
+    platform: frozenset[str] = frozenset()
     cache: bool = False
     learned_outbound: bool = False
+    learned_deps: bool = False
     proposals: int = 0
     submissions: int = 0
     pending: str = "start"  # start | decide | local | revert | system | rollback | latency | done
@@ -88,7 +93,7 @@ ALLOWED: dict[str, frozenset[str]] = {
     "done": frozenset(),
 }
 AFTER_SYSTEM_CHECK: dict[str, str] = {
-    "ASSEMBLY_ADMISSIBLE": "done", "MISSING_CAPABILITY": "rollback", "COST_VIOLATION": "rollback",
+    "ASSEMBLY_ADMISSIBLE": "done", "MISSING_DEPENDENCY": "decide", "MISSING_CAPABILITY": "rollback", "COST_VIOLATION": "rollback",
     "EXTERNAL_CALL_VIOLATION": "decide", "LATENCY_VIOLATION": "latency",
 }
 
@@ -117,6 +122,8 @@ def apply(state: State, event: str) -> State:
             return replace(state, pending="revert")
         if state.gear == OUTBOUND:
             return replace(state, outbound=True, pending="decide", gear=None)
+        if state.gear in PLATFORM:
+            return replace(state, platform=state.platform | {state.gear}, pending="decide", gear=None)
         return replace(state, path=state.path + (state.gear,), pending="decide", gear=None)
     # @cpt-end:cpt-nextgear-state-simulator-session:p1:inst-local
     # @cpt-begin:cpt-nextgear-state-simulator-session:p1:inst-revert
@@ -126,11 +133,12 @@ def apply(state: State, event: str) -> State:
     # @cpt-begin:cpt-nextgear-state-simulator-session:p1:inst-system
     if pending == "system":
         learned = state.learned_outbound or event == "EXTERNAL_CALL_VIOLATION"
-        return replace(state, pending=AFTER_SYSTEM_CHECK[event], learned_outbound=learned)
+        learned_deps = state.learned_deps or event == "MISSING_DEPENDENCY"
+        return replace(state, pending=AFTER_SYSTEM_CHECK[event], learned_outbound=learned, learned_deps=learned_deps)
     # @cpt-end:cpt-nextgear-state-simulator-session:p1:inst-system
     # @cpt-begin:cpt-nextgear-state-simulator-session:p1:inst-rollback
     if pending == "rollback":
-        return replace(state, path=(), outbound=False, pending="decide")
+        return replace(state, path=(), outbound=False, platform=frozenset(), pending="decide")
     # @cpt-end:cpt-nextgear-state-simulator-session:p1:inst-rollback
     # @cpt-begin:cpt-nextgear-state-simulator-session:p1:inst-latency
     if event == "ENABLE_RESOLVER_CACHE":
@@ -147,8 +155,9 @@ def replay(events) -> State:
 
 
 def intended_step(hidden: Hidden, state: State) -> str:
-    """What the agent means to do: add the next required gear it can append, add the
-    outbound gateway if it knows it is needed, otherwise submit."""
+    """What the agent means to do: add the next required gear it can append to the request path,
+    add the outbound gateway if it knows it is needed, add the platform gears the assembly depends
+    on if it knows about dependencies, otherwise submit."""
     last = ORDER[state.path[-1]] if state.path else -1
     for gear in hidden.spec.required_path():
         bypass = gear in EXECUTION_GEARS and "AUTH_RESOLVER" not in state.path
@@ -157,6 +166,11 @@ def intended_step(hidden: Hidden, state: State) -> str:
     knows_outbound = hidden.knows_outbound or state.learned_outbound
     if hidden.spec.needs_outbound() and knows_outbound and not state.outbound:
         return f"ADD_{OUTBOUND}"
+    if hidden.knows_deps or state.learned_deps:
+        gears = present(state.path, state.outbound, state.platform)
+        for gear in PLATFORM:
+            if gear in closure(gears) - gears:
+                return f"ADD_{gear}"
     return "SUBMIT_ASSEMBLY"
 
 
@@ -177,9 +191,9 @@ def next_distribution(hidden: Hidden, state: State, priors: Priors) -> dict[str,
         # @cpt-end:cpt-nextgear-algo-simulator-next-event:p1:inst-agent
     # @cpt-begin:cpt-nextgear-algo-simulator-next-event:p1:inst-checks
     if pending == "local":
-        return {local_verdict(state.path, state.outbound, state.gear): 1.0}
+        return {local_verdict(state.path, state.outbound, state.platform, state.gear): 1.0}
     if pending == "system":
-        return {system_verdict(hidden.spec, state.path, state.outbound, state.cache): 1.0}
+        return {system_verdict(hidden.spec, state.path, state.outbound, state.platform, state.cache): 1.0}
     if pending == "revert":
         return {"STEP_REVERTED": 1.0}
     if pending == "rollback":
@@ -200,30 +214,31 @@ def sample_hidden(priors: Priors, rng: random.Random) -> Hidden:
         execution=rng.choices(EXECUTIONS, weights=priors.execution_weights)[0],
         policy=rng.random() < priors.p_policy,
         license=rng.random() < priors.p_license,
-        tenant=rng.random() < priors.p_tenant,
         usage=rng.random() < priors.p_usage,
         budget="tight" if rng.random() < priors.p_tight_budget else "loose",
     )
     careful = rng.random() < priors.p_careful
     knows = rng.random() < (priors.knows_outbound_careful if careful else priors.knows_outbound_sloppy)
-    return Hidden(spec, careful, knows)
+    knows_deps = rng.random() < (priors.knows_deps_careful if careful else priors.knows_deps_sloppy)
+    return Hidden(spec, careful, knows, knows_deps)
 
 
 def hypotheses(priors: Priors) -> list[tuple[Hidden, float]]:
-    """Every possible hidden parameter set (3 x 2^7 = 384) with its prior probability."""
+    """Every possible hidden parameter set (3 execution gears x 2^7 = 384) with its prior probability."""
     def bern(p: float, value: bool) -> float:
         return p if value else 1 - p
 
     result = []
     for execution, weight in zip(EXECUTIONS, priors.execution_weights):
-        for policy, license_, tenant, usage, careful, knows, tight in itertools.product((False, True), repeat=7):
+        for policy, license_, usage, tight, careful, knows, deps in itertools.product((False, True), repeat=7):
             knows_p = priors.knows_outbound_careful if careful else priors.knows_outbound_sloppy
+            deps_p = priors.knows_deps_careful if careful else priors.knows_deps_sloppy
             p = (weight * bern(priors.p_policy, policy) * bern(priors.p_license, license_)
-                 * bern(priors.p_tenant, tenant) * bern(priors.p_usage, usage) * bern(priors.p_tight_budget, tight)
-                 * bern(priors.p_careful, careful) * bern(knows_p, knows))
+                 * bern(priors.p_usage, usage) * bern(priors.p_tight_budget, tight)
+                 * bern(priors.p_careful, careful) * bern(knows_p, knows) * bern(deps_p, deps))
             if p > 0:
-                spec = Spec(execution, policy, license_, tenant, usage, "tight" if tight else "loose")
-                result.append((Hidden(spec, careful, knows), p))
+                spec = Spec(execution, policy, license_, usage, "tight" if tight else "loose")
+                result.append((Hidden(spec, careful, knows, deps), p))
     return result
 
 
@@ -280,7 +295,8 @@ def read_sessions(path: Path) -> list[Session]:
             data = json.loads(line)
             hidden = data["hidden"]
             session = Session(data["session_id"], tuple(data["events"]),
-                              Hidden(Spec(**hidden["spec"]), hidden["careful"], hidden["knows_outbound"]))
+                              Hidden(Spec(**hidden["spec"]), hidden["careful"], hidden["knows_outbound"],
+                                     hidden["knows_deps"]))
             if any(e not in VOCAB for e in session.events) or replay(session.events).pending != "done":
                 raise ValueError(f"Session {session.session_id} in {path} is not a complete, valid trace.")
             sessions.append(session)

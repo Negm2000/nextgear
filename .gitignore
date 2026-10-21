@@ -30,3 +30,6 @@ runs/
 assets/*.aux
 assets/*.dvi
 assets/*.log
+
+# Rust build output of the registry cross-check.
+tools/registry_check/target/

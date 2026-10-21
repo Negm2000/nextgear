@@ -37,7 +37,7 @@ Nextgear is a local Python experiment with three separate stages: generation, pr
 
 ### 1.2 Architecture Drivers
 
-**ADRs**: `cpt-nextgear-adr-domain`, `cpt-nextgear-adr-bayes-oracle`, `cpt-nextgear-adr-gru`, `cpt-nextgear-adr-session-bootstrap`.
+**ADRs**: `cpt-nextgear-adr-domain`, `cpt-nextgear-adr-bayes-oracle`, `cpt-nextgear-adr-gru`, `cpt-nextgear-adr-session-bootstrap`, `cpt-nextgear-adr-fabric-dependencies`.
 
 #### Functional Drivers
 
@@ -116,8 +116,9 @@ Use CPU-only libraries and local files. Worker and thread counts are bounded, an
 | Entity | Definition |
 |---|---|
 | Spec | Execution gear, optional capabilities and latency budget in `rules.py` |
-| Hidden | Spec, careful-agent flag and outbound-knowledge flag |
-| State | Visible path, cache/outbound flags, counters, phase and pending gear |
+| Dependencies | Each gear's declared `deps` from gears-rust, in the generated `fabric_gears.py` |
+| Hidden | Spec, careful-agent flag, and whether the agent knows about the outbound gateway and dependencies |
+| State | Visible path, platform gears, cache/outbound flags, counters, phase and pending gear |
 | Priors | Requirement probabilities, policy errors and budgets |
 | Session | Identifier, event tuple and hidden ground truth |
 
@@ -137,7 +138,7 @@ It delivers the whole assignment as one reproducible local program with clear bo
 
 | Modules | Ownership |
 |---|---|
-| `events`, `rules`, `simulator` | Vocabulary, deterministic checks, hidden-state sampling and sessions |
+| `events`, `fabric_gears`, `rules`, `simulator` | Vocabulary, declared gear dependencies, deterministic checks, hidden-state sampling and sessions |
 | `baselines`, `gru`, `oracle` | Frequency, n-gram and state-count models; the GRU; exact posterior prediction |
 | `evaluation` | Proper scores, step labels, bootstrap, calibration and one-step alternatives |
 | `benchmark` | Split generation, training workers, cohort comparisons, settings stamps and timing |
@@ -155,7 +156,7 @@ There are no external application components. The four features divide ownership
 
 **ID**: `cpt-nextgear-interface-predictor`
 
-`predict_many(sequences)` returns a list of `(len(sequence)-1, 24)` matrices. Row t forecasts event t+1 from events up to t. `predict_next(prefixes)` returns one 24-way row for each valid nonempty prefix. Values are finite, nonnegative and sum to one. With `intervene=True`, the oracle advances the visible state through the forced final action without using it as evidence.
+`predict_many(sequences)` returns a list of `(len(sequence)-1, 31)` matrices. Row t forecasts event t+1 from events up to t. `predict_next(prefixes)` returns one 31-way row for each valid nonempty prefix. Values are finite, nonnegative and sum to one. With `intervene=True`, the oracle advances the visible state through the forced final action without using it as evidence.
 
 **ID**: `cpt-nextgear-interface-cli`
 
@@ -167,7 +168,7 @@ Vocabulary → rules → simulator. The state counts and the oracle reuse the vi
 
 ### 3.5 External Dependencies
 
-NumPy for arrays and resampling; PyTorch for the GRU, Adam and weight-only checkpoint loading; matplotlib with its bundled Computer Modern fonts. Constructor Studio validates the engineering artifacts. TeX and dvisvgm rebuild the two optional TikZ diagrams. After installation, ordinary runs need no network.
+NumPy for arrays and resampling; PyTorch for the GRU, Adam and weight-only checkpoint loading; matplotlib with its bundled Computer Modern fonts. Constructor Studio validates the engineering artifacts. `tools/extract_gears.py` regenerates `fabric_gears.py` from a gears-rust checkout, and the optional Rust harness in `tools/registry_check` builds against the same pinned commit. TeX and dvisvgm rebuild the two optional TikZ diagrams. After installation, ordinary runs need no network.
 
 ### 3.6 Interactions & Sequences
 

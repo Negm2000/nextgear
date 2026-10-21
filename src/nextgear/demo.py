@@ -11,28 +11,29 @@ from .rules import local_verdict, system_verdict
 from .simulator import State, apply
 
 
+SYSTEM_FAILURES = {"MISSING_DEPENDENCY", "MISSING_CAPABILITY", "EXTERNAL_CALL_VIOLATION", "COST_VIOLATION",
+                   "LATENCY_VIOLATION"}
+
+
 def pick_session(sessions) -> int:
     """The first test session with a rejected gear, a failed system check and a happy ending."""
     for i, s in enumerate(sessions):
         events = set(s.events)
         if ({"ORDER_VIOLATION", "BYPASS_VIOLATION"} & events and "ASSEMBLY_ADMISSIBLE" in events
-                and {"MISSING_CAPABILITY", "EXTERNAL_CALL_VIOLATION", "COST_VIOLATION", "LATENCY_VIOLATION"} & events
-                and len(s.events) <= 24):
+                and SYSTEM_FAILURES & events
+                and len(s.events) <= 36):
             return i
     return 0
 
 
-SYSTEM_FAILURES = {"MISSING_CAPABILITY", "EXTERNAL_CALL_VIOLATION", "COST_VIOLATION", "LATENCY_VIOLATION"}
-
-
 def pick_hero_session(sessions, gru: GRUModel) -> int:
-    """A short session with a rejected gear and a failed system check that ends admissible,
-    choosing the one where the GRU saw the failure coming most clearly."""
+    """A short session with a rejected gear and a failed dependency check that ends admissible,
+    choosing the one where the GRU saw its system-check failures coming most clearly."""
     best, best_p = 0, -1.0
     for i, s in enumerate(sessions):
         events = s.events
         failures = [t for t, e in enumerate(events) if e in SYSTEM_FAILURES]
-        if not (12 <= len(events) <= 21 and events[-1] == "ASSEMBLY_ADMISSIBLE" and failures
+        if not (len(events) <= 32 and events[-1] == "ASSEMBLY_ADMISSIBLE" and "MISSING_DEPENDENCY" in events
                 and {"ORDER_VIOLATION", "BYPASS_VIOLATION"} & set(events)):
             continue
         rows = gru.predict_session(events)
@@ -94,11 +95,11 @@ def run_demo(test, gru: GRUModel, ngram: NGram, oracle: BayesOracle, index: int 
     for (add, gear), row in zip(ADD_EVENTS.items(), rows):
         verdicts = {v: row[INDEX[v]] for v in LOCAL_VERDICTS}
         guess = max(verdicts, key=verdicts.get)
-        truth = local_verdict(state.path, state.outbound, gear)
+        truth = local_verdict(state.path, state.outbound, state.platform, gear)
         print(f"  {add:<28}{guess:<18}{verdicts[guess]:.2f}{'':<6}{truth} {'✓' if guess == truth else '✗'}")
     submit = prefix + ("SUBMIT_ASSEMBLY",)
     admissible = INDEX["ASSEMBLY_ADMISSIBLE"]
     print(f"  {'SUBMIT_ASSEMBLY':<28}P(pass): GRU {gru.predict_next([submit])[0][admissible]:.2f}, oracle with do() "
           f"{oracle.predict_next([submit], intervene=True)[0][admissible]:.2f}; checks say "
-          f"{system_verdict(session.hidden.spec, state.path, state.outbound, state.cache)}")
+          f"{system_verdict(session.hidden.spec, state.path, state.outbound, state.platform, state.cache)}")
     # @cpt-end:cpt-nextgear-flow-pipeline-demo:p1:inst-what-if

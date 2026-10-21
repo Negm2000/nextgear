@@ -19,10 +19,10 @@ FACTS = {
     "needs the Serverless Runtime": lambda h: h.spec.execution == "SERVERLESS_RUNTIME",
     "needs the Policy Manager": lambda h: h.spec.policy,
     "needs the License Resolver": lambda h: h.spec.license,
-    "needs the Tenant Resolver": lambda h: h.spec.tenant,
     "needs the Usage Collector": lambda h: h.spec.usage,
     "has a tight latency budget": lambda h: h.spec.budget == "tight",
     "agent is careful": lambda h: h.careful,
+    "agent knows the dependencies": lambda h: h.knows_deps,
 }
 
 

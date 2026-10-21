@@ -103,7 +103,7 @@ This feature has no user-facing flow; it runs inside `cpt-nextgear-flow-pipeline
 **Output**: Verdict accuracy and log loss for untaken gears, and the predicted chance that a forced submission passes
 
 **Steps**:
-1. [x] - `p1` - **FOR EACH** open decision point, append each of the ten gears and a submission to the prefix, and ask the checks for the true verdict using the session's hidden specification - `inst-queries`
+1. [x] - `p1` - **FOR EACH** open decision point, append each of the sixteen gears and a submission to the prefix, and ask the checks for the true verdict using the session's hidden specification - `inst-queries`
 2. [x] - `p1` - Score each predictor's verdict probabilities against the truth; the do() oracle treats the appended action as forced, not as evidence - `inst-score`
 
 ### Unseen traces

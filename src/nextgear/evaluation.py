@@ -114,7 +114,7 @@ def paired_bootstrap(a: dict, b: dict, resamples: int, seed: int, step_type: str
 # @cpt-algo:cpt-nextgear-algo-evaluation-what-if:p1
 def what_if(predictors: dict, sessions, priors: Priors, interventional=None) -> dict:
     """At every decision point, ask each predictor what the checks would say to each of the
-    ten gears and to a submission, including every action the agent did not take.
+    sixteen gears and to a submission, including every action the agent did not take.
 
     `interventional` is a BayesOracle queried with do(), the correct reference for forced actions.
     """
@@ -128,11 +128,11 @@ def what_if(predictors: dict, sessions, priors: Priors, interventional=None) -> 
                 prefix = session.events[:t]
                 for add, gear in ADD_EVENTS.items():
                     local_q.append(prefix + (add,))
-                    local_y.append(LOCAL_VERDICTS.index(local_verdict(state.path, state.outbound, gear)))
+                    local_y.append(LOCAL_VERDICTS.index(local_verdict(state.path, state.outbound, state.platform, gear)))
                     chosen.append(add == event)
                 submit_q.append(prefix + ("SUBMIT_ASSEMBLY",))
                 submit_y.append(SYSTEM_VERDICTS.index(
-                    system_verdict(session.hidden.spec, state.path, state.outbound, state.cache)))
+                    system_verdict(session.hidden.spec, state.path, state.outbound, state.platform, state.cache)))
             state = apply(state, event)
     # @cpt-end:cpt-nextgear-algo-evaluation-what-if:p1:inst-queries
     local_y, submit_y, unchosen = np.array(local_y), np.array(submit_y), ~np.array(chosen)

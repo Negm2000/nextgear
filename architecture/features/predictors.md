@@ -36,7 +36,7 @@ Two count baselines, the GRU and the Bayes oracle, all behind one prediction con
 
 ### 1.1 Overview
 
-Every predictor maps a prefix of events to a probability for each of the 24 possible next events. The n-gram sees the last few events. The state-count model is given the simulator's state machine and counts what follows each visible state. The GRU learns its own summary of the whole history. The oracle knows the simulator's equations and priors and infers the hidden specification with Bayes' rule.
+Every predictor maps a prefix of events to a probability for each of the 31 possible next events. The n-gram sees the last few events. The state-count model is given the simulator's state machine and counts what follows each visible state. The GRU learns its own summary of the whole history. The oracle knows the simulator's equations and priors and infers the hidden specification with Bayes' rule.
 
 ### 1.2 Purpose
 
@@ -130,7 +130,7 @@ Predictors are fitted once and then only queried; session state belongs to `cpt-
 
 - [x] `p1` - **ID**: `cpt-nextgear-dod-predictors-contract`
 
-Every predictor **MUST** return, for every prefix, a strictly valid distribution over the 24 events, computed from the event names alone; only the oracle may read the configured priors and simulator equations, and none may read a session's hidden parameters.
+Every predictor **MUST** return, for every prefix, a strictly valid distribution over the 31 events, computed from the event names alone; only the oracle may read the configured priors and simulator equations, and none may read a session's hidden parameters.
 
 **Implements**:
 - `cpt-nextgear-algo-predictors-ngram`

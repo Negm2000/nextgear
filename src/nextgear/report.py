@@ -152,7 +152,7 @@ def markdown(r: dict) -> str:
     lines += [
         "", "## 4. What if the agent had done something else?", "",
         f"At every decision point of the first {meta['config']['evaluation']['what_if_sessions']} test sessions "
-        f"({w['decision_points']} points), each model predicts the check's verdict for all ten gears and for a "
+        f"({w['decision_points']} points), each model predicts the check's verdict for all sixteen gears and for a "
         f"submission. The checks give the true answer. {w['unchosen_local_queries']} gear queries are actions the "
         f"agent did not take; {w['unchosen_rejected_share']:.0%} of those would have been rejected.", "",
         "| Model | Right verdict, untaken gears | Gear verdict log loss | P(pass) if forced to submit | Submit log loss |",

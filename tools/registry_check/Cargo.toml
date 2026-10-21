@@ -1,0 +1,12 @@
+[package]
+name = "registry-check"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Ask the real gears-rust registry whether each assembly's dependencies resolve"
+
+# The same commit as src/nextgear/fabric_gears.py.
+[dependencies]
+cf-gears-toolkit = { git = "https://github.com/constructorfabric/gears-rust", rev = "fc765feb8e328ae31c44bfb3a0c981b42e32a105" }
+
+[workspace]

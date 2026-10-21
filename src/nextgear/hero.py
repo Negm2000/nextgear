@@ -15,6 +15,7 @@ import numpy as np  # noqa: E402
 
 from .events import INDEX, VOCAB  # noqa: E402
 from .report import GREY, GRU, INK, LIGHT, PAPER  # noqa: E402
+from .rules import PLATFORM  # noqa: E402
 from .simulator import State, apply  # noqa: E402
 
 SVG, XLINK = "http://www.w3.org/2000/svg", "http://www.w3.org/1999/xlink"
@@ -24,26 +25,41 @@ TT = {"family": "monospace", "fontname": "cmtt10"}
 NAMES = {"API_GATEWAY": "API Gateway", "AUTH_RESOLVER": "Auth Resolver", "POLICY_MANAGER": "Policy Manager",
          "LICENSE_RESOLVER": "License Resolver", "CHAT_ENGINE": "Chat Engine", "BILLING_LEDGER": "Billing Ledger",
          "SERVERLESS_RUNTIME": "Serverless Runtime", "TENANT_RESOLVER": "Tenant Resolver",
-         "USAGE_COLLECTOR": "Usage Collector", "OUTBOUND_API_GATEWAY": "Outbound Gateway"}
+         "USAGE_COLLECTOR": "Usage Collector", "OUTBOUND_API_GATEWAY": "Outbound Gateway", "GRPC_HUB": "gRPC Hub",
+         "TYPES_REGISTRY": "Types Registry", "AUTHZ_RESOLVER": "Authz Resolver", "CREDENTIALS_STORE": "Credentials Store",
+         "ACCOUNT_MANAGER": "Account Manager", "RESOURCE_GROUP": "Resource Group"}
 FACT_LABELS = {"needs the Chat Engine": "Chat Engine", "needs the Billing Ledger": "Billing Ledger",
                "needs the Serverless Runtime": "Serverless Runtime", "needs the Policy Manager": "Policy Manager",
-               "needs the License Resolver": "License Resolver", "needs the Tenant Resolver": "Tenant Resolver",
-               "needs the Usage Collector": "Usage Collector", "has a tight latency budget": "tight budget",
-               "agent is careful": "careful agent"}
+               "needs the License Resolver": "License Resolver", "needs the Usage Collector": "Usage Collector",
+               "has a tight latency budget": "tight budget", "agent is careful": "careful agent",
+               "agent knows the dependencies": "knows dependencies"}
 QUICK = {"STEP_ACCEPTED", "STEP_REVERTED", "ROLLBACK_ASSEMBLY", "ENABLE_RESOLVER_CACHE"}
 LOG_LINES, BARS = 9, 5
 
 
+def _proposed(state: State) -> str | None:
+    if state.pending == "local":
+        return f"{NAMES[state.gear]}?"
+    if state.pending == "revert":
+        return f"{NAMES[state.gear]} (rejected)"
+    return None
+
+
 def _path_text(state: State) -> str:
     parts = [NAMES[g] for g in state.path] + (["Outbound Gateway"] if state.outbound else [])
-    if state.pending == "local":
-        parts.append(f"{NAMES[state.gear]}?")
-    elif state.pending == "revert":
-        parts.append(f"{NAMES[state.gear]} (rejected)")
+    if _proposed(state) and state.gear not in PLATFORM:
+        parts.append(_proposed(state))
     text = r" $\rightarrow$ ".join(parts) if parts else "empty"
     if state.pending == "system":
         text += r"  $\vdash$ submitted"
     return text + ("   [resolver cache on]" if state.cache else "")
+
+
+def _platform_text(state: State) -> str:
+    parts = [NAMES[g] for g in PLATFORM if g in state.platform]
+    if _proposed(state) and state.gear in PLATFORM:
+        parts.append(_proposed(state))
+    return ", ".join(parts) if parts else "none"
 
 
 class _Figure:
@@ -51,7 +67,8 @@ class _Figure:
 
     def __init__(self, truth: dict[str, bool]):
         self.fig = f = plt.figure(figsize=(9.6, 3.7))
-        self.static = [f.text(0.01, 0.93, r"request path $s_t$:", fontsize=10)]
+        self.static = [f.text(0.01, 0.93, r"request path $s_t$:", fontsize=10),
+                       f.text(0.01, 0.875, "platform gears:", fontsize=10)]
         self.log = f.add_axes((0.01, 0.06, 0.23, 0.7))
         self.bars = f.add_axes((0.435, 0.14, 0.185, 0.62))
         self.belief = f.add_axes((0.795, 0.14, 0.125, 0.62))
@@ -111,6 +128,7 @@ def _frame(fig: _Figure, events, t: int, state: State, gru: np.ndarray, oracle: 
     """Event t (1-based): the forecast made before it, then what it revealed."""
     event = events[t]
     fig.add(fig.fig.text(0.13, 0.93, _path_text(state), fontsize=10))
+    fig.add(fig.fig.text(0.13, 0.875, _platform_text(state), fontsize=10))
     fig.add(fig.fig.text(0.99, 0.93, f"$t = {t}$ of {len(events) - 1}", fontsize=10, ha="right"))
     first = max(1, t - LOG_LINES + 1)
     for line, k in enumerate(range(first, t + 1)):

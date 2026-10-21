@@ -20,8 +20,13 @@
   note/.style={font=\footnotesize\itshape, text=black!70},
 ]
 
+\node[data, text width=92mm] (fabric) at (0, 97mm) {%
+  \textbf{constructorfabric/gears-rust} {\footnotesize\texttt{@fc765fe}}\\[2pt]
+  {\footnotesize request order from \texttt{docs/GEARS.md}\\
+   dependencies from the \texttt{deps} of every \texttt{\#[toolkit::gear]}}};
+
 \node[box, text width=72mm] (sim) at (0, 66mm) {%
-  \module{Generator}{simulator.py \quad rules.py}
+  \module{Generator}{simulator.py \quad rules.py \quad fabric\_gears.py}
   hidden specification $z \sim p(z)$\\
   agent proposes $a_t \sim \pi(a \mid s_t, z)$\\
   checks answer with $v_t = f(s_t, a_t, z)$};
@@ -53,6 +58,8 @@
 \node[data] (out) at (0, -67mm) {\texttt{results/report.json} \quad \texttt{results/REPORT.md} \quad figures};
 
 % Main flow
+\draw[flow] (fabric) -- node[right, note] {extracted at a pinned commit}
+                       node[left, note] {cross-checked against its registry} (sim);
 \draw[flow] (sim) -- node[right, note] {sample} (seq);
 \coordinate (bus) at (0, 17mm);
 \draw[semithick] (seq.south) -- (bus);
