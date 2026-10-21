@@ -1,34 +1,58 @@
 """Turn report.json into results/REPORT.md and two SVG charts.
 
-The charts are written as plain SVG so that their text stays sharp and their colours follow the reader's light
-or dark theme.
+The charts are written as plain SVG so that their colours follow the reader's light or dark theme. They use
+Computer Modern, like the other figures, embedded as a subset of the copy that ships with matplotlib.
 """
 
-from html import escape
+import base64
+import io
+import logging
+import re
+from html import escape, unescape
 from pathlib import Path
 
-FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif'
-STYLE = f"""
-svg {{ font-family: {FONT}; --ink: #1f2328; --muted: #59636e; --grid: #d1d9e0; --ngram: #8c959f;
-       --counts: #c4cbd3; --gru: #2a78d6; --seen: #a8c8ef; }}
-@media (prefers-color-scheme: dark) {{
-  svg {{ --ink: #f0f6fc; --muted: #9198a1; --grid: #3d444d; --ngram: #6e7681; --counts: #454c54;
-         --gru: #3987e5; --seen: #24466f; }}
-}}
-.title {{ font-size: 15px; font-weight: 600; fill: var(--ink) }}
-.sub {{ font-size: 12px; fill: var(--muted) }}
-.head {{ font-size: 13px; font-weight: 600; fill: var(--ink) }}
-.lbl {{ font-size: 12px; fill: var(--ink) }}
-.val {{ font-size: 12px; fill: var(--ink); font-variant-numeric: tabular-nums }}
-.tick {{ font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums }}
-.grid {{ stroke: var(--grid); stroke-width: 1 }}
-.range {{ stroke: var(--ink); stroke-width: 1.5 }}
+import matplotlib
+from fontTools import subset
+from fontTools.ttLib import TTFont
+
+FONTS = Path(matplotlib.get_data_path()) / "fonts" / "ttf"
+logging.getLogger("fontTools").setLevel(logging.ERROR)  # the bundled fonts carry 1990s timestamps
+STYLE = """
+svg { font-family: CM, serif; --ink: #1f2328; --muted: #59636e; --grid: #d1d9e0; --ngram: #8c959f;
+       --counts: #c4cbd3; --gru: #2a78d6; --seen: #a8c8ef; }
+@media (prefers-color-scheme: dark) {
+  svg { --ink: #f0f6fc; --muted: #9198a1; --grid: #3d444d; --ngram: #6e7681; --counts: #454c54;
+         --gru: #3987e5; --seen: #24466f; }
+}
+.title { font-size: 17px; font-weight: 700; fill: var(--ink) }
+.sub { font-size: 13px; fill: var(--muted) }
+.head { font-size: 14px; font-weight: 700; fill: var(--ink) }
+.lbl { font-size: 13px; fill: var(--ink) }
+.val { font-size: 13px; fill: var(--ink) }
+.tick { font-size: 12px; fill: var(--muted) }
+.grid { stroke: var(--grid); stroke-width: 1 }
+.range { stroke: var(--ink); stroke-width: 1.5 }
 """
+
+
+def _font_face(name: str, weight: int, text: str) -> str:
+    """An @font-face rule embedding only the glyphs that `text` uses."""
+    font = TTFont(FONTS / name, recalcTimestamp=False)
+    subsetter = subset.Subsetter(subset.Options())
+    subsetter.populate(text=text)
+    subsetter.subset(font)
+    out = io.BytesIO()
+    font.save(out)
+    data = base64.b64encode(out.getvalue()).decode()
+    return f"@font-face {{ font-family: CM; font-weight: {weight}; src: url(data:font/ttf;base64,{data}) }}"
 
 
 def _svg(width: int, height: int, title: str, body: list[str]) -> str:
+    text = "".join(unescape(t) for t in re.findall(r">([^<>]+)</text>", "\n".join(body)))
+    fonts = "\n".join(_font_face(name, weight, text) for name, weight in (("cmr10.ttf", 400), ("cmb10.ttf", 700)))
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 {width} {height}" role="img">\n'
-            f"<title>{escape(title)}</title>\n<style>{STYLE}</style>\n" + "\n".join(body) + "\n</svg>\n")
+            f"<title>{escape(title)}</title>\n<style>{fonts}\n{STYLE}</style>\n" + "\n".join(body)
+            + "\n</svg>\n")
 
 
 def _text(x, y, text, cls, anchor="start") -> str:

@@ -9,7 +9,7 @@ description = "Predict the next event while an agent assembles a gear pipeline, 
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Karim Negm" }]
-dependencies = ["numpy>=2.0", "torch>=2.4", "matplotlib>=3.8"]
+dependencies = ["numpy>=2.0", "torch>=2.4", "matplotlib>=3.8", "fonttools>=4.40"]
 
 [project.scripts]
 nextgear = "nextgear.cli:main"
