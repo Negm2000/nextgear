@@ -48,7 +48,7 @@ Chosen option: "Enumerated Bayes filter". The 384 hypotheses are few enough to u
 
 ### Consequences
 
-The oracle minimises expected log loss only when its assumptions match the data. In the excluded-group test it keeps the base prior and serves as a common reference. Because it shares code with the generator, it is not independent validation.
+The oracle minimises expected log loss only when its assumptions match the data. In the novel-trace subset and the excluded-group test, sessions are selected after generation, so the unconditioned oracle serves only as a common reference. Because it shares code with the generator, it is not independent validation.
 
 ### Confirmation
 

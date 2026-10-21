@@ -37,7 +37,7 @@ Differences in log loss per event, with 95% intervals from resampling whole sess
 
 ## 3. Traces never seen in training
 
-The simulator is small enough to repeat itself: 966 of 2000 test sessions match a training session event for event. The tables below score the other 1034. Their prefixes and subsequences can still be familiar from training, so this rules out recall of whole traces, not memorisation in general.
+The simulator is small enough to repeat itself: 966 of 2000 test sessions match a training session event for event. The tables below score the other 1034. Their prefixes and subsequences can still be familiar from training, so this rules out recall of whole traces, not memorisation in general. Selecting sessions by novelty also changes their distribution, and the oracle is not told about the selection: it still gives probability to endings that would recreate a training trace. Here it is a common reference, not the best achievable score for this subset.
 
 | Model | Log loss | Gap to oracle | Accuracy |
 |---|---:|---:|---:|

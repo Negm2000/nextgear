@@ -141,7 +141,9 @@ def markdown(r: dict) -> str:
         f"The simulator is small enough to repeat itself: {nv['repeated']} of {ne['sessions']} test sessions match a "
         f"training session event for event. The tables below score the other {nv['sessions']}. Their prefixes and "
         "subsequences can still be familiar from training, so this rules out recall of whole traces, not "
-        "memorisation in general.", "",
+        "memorisation in general. Selecting sessions by novelty also changes their distribution, and the oracle "
+        "is not told about the selection: it still gives probability to endings that would recreate a training "
+        "trace. Here it is a common reference, not the best achievable score for this subset.", "",
         "| Model | Log loss | Gap to oracle | Accuracy |", "|---|---:|---:|---:|",
         *(f"| {label(n)} | {m['log_loss']:.4f} | {m['excess']:.4f} | {m['accuracy']:.1%} |" for n, m in nv["models"].items()),
         "", "| Comparison | Steps | Difference [95% interval] |", "|---|---|---:|", *_paired_rows(nv["paired"]),

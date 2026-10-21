@@ -2,8 +2,10 @@
 
 import tempfile
 import unittest
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import replace
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 
@@ -51,8 +53,13 @@ class OracleTests(unittest.TestCase):
             self.oracle.predict_next([()])
 
     def test_parallel_prediction_matches_serial(self):
-        events = [s.events for s in Shared.test[:120]]
-        serial, parallel = self.oracle.predict_many(events), predict_parallel(Shared.priors, events, workers=2)
+        # Below 100 sequences predict_parallel falls back to serial, so use enough to reach the process pool.
+        events = [s.events for s in generate(120, 14, "parallel", Shared.priors)]
+        serial = self.oracle.predict_many(events)
+        with mock.patch("nextgear.oracle.ProcessPoolExecutor", wraps=ProcessPoolExecutor) as pool:
+            parallel = predict_parallel(Shared.priors, events, workers=2)
+        pool.assert_called_once()
+        self.assertEqual(len(serial), len(parallel))
         for a, b in zip(serial, parallel):
             np.testing.assert_allclose(a, b)
 

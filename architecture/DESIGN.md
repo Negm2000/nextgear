@@ -93,7 +93,7 @@ Each forecast is made before its target event. The learned and count models neve
 
 - [x] `p2` - **ID**: `cpt-nextgear-principle-absolute-reference`
 
-Where the oracle's priors match the evaluation data, scores are compared with it as the best achievable. In the group exclusion, the oracle keeps the base prior and is not told which group was selected, so it serves as a common reference rather than the optimum.
+Where the evaluation sessions come straight from the oracle's priors, scores are compared with it as the best achievable. The novel-trace subset and the group exclusion select sessions after generation; the oracle keeps the base prior and is not told about the selection, so there it serves as a common reference rather than the optimum.
 
 #### Keep the experiment small
 

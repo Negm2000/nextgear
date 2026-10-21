@@ -184,7 +184,7 @@ The system **MUST** query every gear and a submission at open decision points, c
 
 - [x] `p1` - **ID**: `cpt-nextgear-fr-unseen-traces`
 
-The system **MUST** report how many test traces exactly repeat a training trace and score the remaining novel full traces, without claiming that their prefixes or subsequences are novel.
+The system **MUST** report how many test traces exactly repeat a training trace and score the remaining novel full traces, without claiming that their prefixes or subsequences are novel, and treat the unconditioned oracle there as a common reference.
 
 #### Changed distribution
 

@@ -112,7 +112,7 @@ This feature has no user-facing flow; it runs inside `cpt-nextgear-flow-pipeline
 
 **Input**: Training sessions and the scored test sessions
 
-**Output**: Scores and paired comparisons on test sessions whose exact event sequence never occurs in training
+**Output**: Scores and paired comparisons on test sessions whose exact event sequence never occurs in training; the oracle is not conditioned on novelty, so it is a common reference here
 
 **Steps**:
 1. [x] - `p1` - Split the test set by whether its event sequence appears verbatim in training - `inst-split`
