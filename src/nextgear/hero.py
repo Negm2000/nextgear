@@ -14,9 +14,18 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
 from .events import INDEX, VOCAB  # noqa: E402
-from .report import GREY, GRU, INK, LIGHT, PAPER  # noqa: E402
 from .rules import PLATFORM  # noqa: E402
 from .simulator import State, apply  # noqa: E402
+
+# Computer Modern ships with matplotlib, so the figure looks like LaTeX without a TeX install.
+PAPER = {
+    "font.family": "serif", "font.serif": ["cmr10"], "mathtext.fontset": "cm", "axes.unicode_minus": False,
+    "axes.formatter.use_mathtext": True, "font.size": 9, "axes.titlesize": 9, "axes.linewidth": 0.6,
+    "axes.edgecolor": "black", "xtick.direction": "in", "ytick.direction": "in", "xtick.major.width": 0.6,
+    "xtick.major.size": 3, "ytick.major.size": 0, "xtick.labelsize": 8, "ytick.labelsize": 9,
+    "svg.fonttype": "path", "svg.hashsalt": "nextgear", "figure.facecolor": "white", "savefig.facecolor": "white",
+}
+INK, GRU, GREY, LIGHT = "#000000", "#2b5797", "#8c8c8c", "#c8c8c8"
 
 SVG, XLINK = "http://www.w3.org/2000/svg", "http://www.w3.org/1999/xlink"
 ET.register_namespace("", SVG)

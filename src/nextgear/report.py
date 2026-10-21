@@ -1,21 +1,47 @@
-"""Turn report.json into results/REPORT.md and figures in the style of a paper."""
+"""Turn report.json into results/REPORT.md and two SVG charts.
 
+The charts are written as plain SVG so that their text stays sharp and their colours follow the reader's light
+or dark theme.
+"""
+
+from html import escape
 from pathlib import Path
 
-import matplotlib
+FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif'
+STYLE = f"""
+svg {{ font-family: {FONT}; --ink: #1f2328; --muted: #59636e; --grid: #d1d9e0; --ngram: #8c959f;
+       --counts: #c4cbd3; --gru: #2a78d6; --seen: #a8c8ef; }}
+@media (prefers-color-scheme: dark) {{
+  svg {{ --ink: #f0f6fc; --muted: #9198a1; --grid: #3d444d; --ngram: #6e7681; --counts: #454c54;
+         --gru: #3987e5; --seen: #24466f; }}
+}}
+.title {{ font-size: 15px; font-weight: 600; fill: var(--ink) }}
+.sub {{ font-size: 12px; fill: var(--muted) }}
+.head {{ font-size: 13px; font-weight: 600; fill: var(--ink) }}
+.lbl {{ font-size: 12px; fill: var(--ink) }}
+.val {{ font-size: 12px; fill: var(--ink); font-variant-numeric: tabular-nums }}
+.tick {{ font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums }}
+.grid {{ stroke: var(--grid); stroke-width: 1 }}
+.range {{ stroke: var(--ink); stroke-width: 1.5 }}
+"""
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
 
-# Computer Modern ships with matplotlib, so the figures look like LaTeX without a TeX install.
-PAPER = {
-    "font.family": "serif", "font.serif": ["cmr10"], "mathtext.fontset": "cm", "axes.unicode_minus": False,
-    "axes.formatter.use_mathtext": True, "font.size": 9, "axes.titlesize": 9, "axes.linewidth": 0.6,
-    "axes.edgecolor": "black", "xtick.direction": "in", "ytick.direction": "in", "xtick.major.width": 0.6,
-    "xtick.major.size": 3, "ytick.major.size": 0, "xtick.labelsize": 8, "ytick.labelsize": 9,
-    "svg.fonttype": "path", "svg.hashsalt": "nextgear", "figure.facecolor": "white", "savefig.facecolor": "white",
-}
-INK, GRU, GREY, LIGHT = "#000000", "#2b5797", "#8c8c8c", "#c8c8c8"
+def _svg(width: int, height: int, title: str, body: list[str]) -> str:
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 {width} {height}" role="img">\n'
+            f"<title>{escape(title)}</title>\n<style>{STYLE}</style>\n" + "\n".join(body) + "\n</svg>\n")
+
+
+def _text(x, y, text, cls, anchor="start") -> str:
+    return f'<text x="{x:.1f}" y="{y:.1f}" class="{cls}" text-anchor="{anchor}">{escape(text)}</text>'
+
+
+def _bar(x0, y, width, height, colour) -> str:
+    """A horizontal bar whose free end is rounded and whose baseline end is square."""
+    r = min(4, width / 2, height / 2)
+    x1 = x0 + width
+    return (f'<path d="M{x0:.1f},{y:.1f} H{x1 - r:.1f} Q{x1:.1f},{y:.1f} {x1:.1f},{y + r:.1f} '
+            f'V{y + height - r:.1f} Q{x1:.1f},{y + height:.1f} {x1 - r:.1f},{y + height:.1f} H{x0:.1f} Z" '
+            f'fill="var(--{colour})"/>')
 
 
 def label(name: str) -> str:
@@ -36,65 +62,78 @@ def _paired_rows(comparisons) -> list[str]:
     return [f"| {label(c['a'])} vs {label(c['b'])} | {c['steps']} | {_ci(c)} |" for c in comparisons]
 
 
-def _bars(ax, names, values, colors, fmt, labels=None):
-    y = list(range(len(names)))[::-1]
-    ax.barh(y, values, height=0.62, color=colors, edgecolor=INK, linewidth=0.5)
-    for yi, v in zip(y, values):
-        ax.text(v, yi, f"  {fmt(v)}", va="center", fontsize=8)
-    ax.set_yticks(y, [(labels or {}).get(n, label(n)) for n in names])
-    for side in ("top", "right", "left"):
-        ax.spines[side].set_visible(False)
-
-
 def figure_gap(report: dict, path: Path) -> None:
-    """Excess log loss over the oracle reference in four test conditions."""
+    """Excess log loss over the oracle reference in four test conditions, one small panel each."""
     best, gru = report["next_event"]["best_ngram"], report["next_event"]["gru"]
-    names = [best, "state_counts", gru]
     holdout = report["holdout"]["models"]
-    panels = [("(a) held-out sessions", {n: report["next_event"]["models"][n]["all"]["excess"] for n in names}),
-              ("(b) traces never seen in training", {n: report["novel"]["models"][n]["excess"] for n in names}),
-              ("(c) agent behaviour shifted", {n: report["shift"]["models"][n]["excess"] for n in names}),
-              ("(d) requirement combination unseen", {best: holdout[best]["all"]["excess"],
-                                                      "state_counts": holdout["state_counts"]["all"]["excess"],
-                                                      gru: holdout["gru_holdout"]["all"]["excess"]})]
-    top = max(v for _, values in panels for v in values.values())
-    with plt.rc_context(PAPER):
-        fig, axes = plt.subplots(1, 4, figsize=(9.6, 1.9), sharey=True)
-        for ax, (title, values) in zip(axes, panels):
-            _bars(ax, names, [values[n] for n in names], [LIGHT, GREY, GRU], lambda v: f"{v:.3f}")
-            ax.set_title(title, loc="left")
-            ax.set_xlim(0, top * 1.4)
-        fig.subplots_adjust(left=0.085, right=0.99, top=0.84, bottom=0.3, wspace=0.13)
-        fig.text(0.54, 0.1, r"excess log loss over the Bayes reference $p^\ast$ (nats per event)",
-                 ha="center")
-        fig.savefig(path, bbox_inches="tight", pad_inches=0.06)
-        plt.close(fig)
+    rows = [("Best n-gram", "ngram", best, best), ("State counts", "counts", "state_counts", "state_counts"),
+            ("GRU", "gru", gru, "gru_holdout")]
+    panels = [("Held-out sessions", lambda n, h: report["next_event"]["models"][n]["all"]["excess"]),
+              ("Traces new to training", lambda n, h: report["novel"]["models"][n]["excess"]),
+              ("Agent behaviour shifted", lambda n, h: report["shift"]["models"][n]["excess"]),
+              ("Combination left out", lambda n, h: holdout[h]["all"]["excess"])]
+    values = [[get(n, h) for _, _, n, h in rows] for _, get in panels]
+    top = max(max(v) for v in values)
+    width, left, gap, row, bar_h, y0 = 780, 104, 18, 26, 16, 92
+    panel = (width - left - 3 * gap) / 4
+    scale = (panel - 44) / top
+    body = [_text(0, 20, "Distance from the best possible score (shorter is better)", "title"),
+            _text(0, 40, "Excess log loss over the Bayes oracle, in nats per event", "sub")]
+    for i, (name, *_rest) in enumerate(rows):
+        body.append(_text(left - 10, y0 + i * row + bar_h - 4, name, "lbl", "end"))
+    for k, ((title, _), vals) in enumerate(zip(panels, values)):
+        x0 = left + k * (panel + gap)
+        body.append(_text(x0, y0 - 14, title, "head"))
+        body.append(f'<line x1="{x0}" x2="{x0}" y1="{y0 - 4}" y2="{y0 + 3 * row - 6}" class="grid"/>')
+        for i, ((_, colour, _, _), v) in enumerate(zip(rows, vals)):
+            y = y0 + i * row
+            body.append(_bar(x0, y, v * scale, bar_h, colour))
+            body.append(_text(x0 + v * scale + 5, y + bar_h - 4, f"{v:.3f}", "val"))
+    _write(path, _svg(width, y0 + 3 * row, "Excess log loss over the oracle in four test conditions", body))
 
 
 def figure_unseen(report: dict, path: Path) -> None:
-    """System-check accuracy on each excluded combination: the n-gram, and the GRUs that did and did not see it."""
+    """System-check accuracy on each excluded combination: the n-gram, and GRUs that did and did not see it."""
     runs = report["holdout_sweep"]["runs"]
     groups = [tuple(g) for g in report["holdout_sweep"]["groups"]]
-    with plt.rc_context(PAPER):
-        fig, ax = plt.subplots(figsize=(5.6, 1.7))
-        for y, group in enumerate(reversed(groups)):
-            mine = [r for r in runs if tuple(r["group"]) == group]
-            ax.plot([mine[0]["ngram_system_accuracy"]], [y], "s", color=GREY, ms=6, label="n-gram" if y == 0 else None)
-            ax.plot([r["system_accuracy"] for r in mine], [y] * len(mine), "o", color=GRU, ms=5,
-                    label="GRU, combination unseen" if y == 0 else None)
-            seen = [r["seen_system_accuracy"] for r in mine if r["seen_system_accuracy"] is not None]
-            ax.plot(seen, [y] * len(seen), "o", mfc="white", mec=INK, ms=5, label="GRU, combination seen" if y == 0 else None)
-        ax.set_yticks(range(len(groups)), [_group(g) for g in reversed(groups)])
-        ax.set_ylim(-0.6, len(groups) - 0.4)
-        ax.set_xlim(0.5, 1.0)
-        ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:.0%}"))
-        ax.set_xlabel("system-check accuracy on new sessions of the excluded combination (one mark per seed)")
-        for side in ("top", "right", "left"):
-            ax.spines[side].set_visible(False)
-        ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=3, frameon=False, fontsize=8, handletextpad=0.3)
-        fig.savefig(path, bbox_inches="tight", pad_inches=0.06)
-        plt.close(fig)
+    width, left, right, bar_h, row, head, y = 780, 150, 724, 16, 24, 26, 90
+    span = right - left
+    body = [_text(0, 20, "System checks on a combination the GRU never trained on", "title"),
+            _text(0, 40, "Share of pass/fail verdicts predicted correctly on new sessions of each combination left out "
+                         "of training.", "sub"),
+            _text(0, 56, "Bars: average of three training seeds. Lines: lowest to highest seed.", "sub")]
+    ticks = (0, 0.25, 0.5, 0.75, 1.0)
+    for group in groups:
+        mine = [r for r in runs if tuple(r["group"]) == group]
+        seen = [r["seen_system_accuracy"] for r in mine if r["seen_system_accuracy"] is not None]
+        bars = [("n-gram", "ngram", [mine[0]["ngram_system_accuracy"]]),
+                ("GRU, never saw it", "gru", [r["system_accuracy"] for r in mine]),
+                ("GRU, trained on it", "seen", seen)]
+        body.append(_text(0, y + 13, _group(group), "head"))
+        y += head
+        body += [f'<line x1="{left + t * span:.1f}" x2="{left + t * span:.1f}" y1="{y - 4}" '
+                 f'y2="{y + len(bars) * row - 4}" class="grid"/>' for t in ticks]
+        for name, colour, vals in bars:
+            if not vals:
+                continue
+            mean, lo, hi = sum(vals) / len(vals), min(vals), max(vals)
+            body.append(_text(left - 10, y + bar_h - 4, name, "lbl", "end"))
+            body.append(_bar(left, y, mean * span, bar_h, colour))
+            end = mean
+            if len(vals) > 1:
+                mid, a, b = y + bar_h / 2, left + lo * span, left + hi * span
+                body.append(f'<path d="M{a:.1f},{mid - 4:.1f} V{mid + 4:.1f} M{a:.1f},{mid:.1f} H{b:.1f} '
+                            f'M{b:.1f},{mid - 4:.1f} V{mid + 4:.1f}" class="range" fill="none"/>')
+                end = max(mean, hi)
+            body.append(_text(left + end * span + 6, y + bar_h - 4, f"{mean:.0%}", "val"))
+            y += row
+        y += 10
+    body += [_text(left + t * span, y + 6, f"{t:.0%}", "tick", "middle") for t in ticks]
+    _write(path, _svg(width, y + 12, "System-check accuracy on combinations left out of training", body))
 
+
+def _write(path: Path, svg: str) -> None:
+    path.write_text(svg, encoding="utf-8", newline="\n")
 
 def render(report: dict, results_dir: Path) -> None:
     figures = results_dir / "figures"

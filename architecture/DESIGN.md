@@ -168,7 +168,7 @@ Vocabulary → rules → simulator. The state counts and the oracle reuse the vi
 
 ### 3.5 External Dependencies
 
-NumPy for arrays and resampling; PyTorch for the GRU, Adam and weight-only checkpoint loading; matplotlib with its bundled Computer Modern fonts. Constructor Studio validates the engineering artifacts. `tools/extract_gears.py` regenerates `fabric_gears.py` from a gears-rust checkout, and the optional Rust harness in `tools/registry_check` builds against the same pinned commit. TeX and dvisvgm rebuild the two optional TikZ diagrams. After installation, ordinary runs need no network.
+NumPy for arrays and resampling; PyTorch for the GRU, Adam and weight-only checkpoint loading; matplotlib with its bundled Computer Modern fonts for the animated session figure; the benchmark charts are written as plain SVG that follows the reader's light or dark theme. Constructor Studio validates the engineering artifacts. `tools/extract_gears.py` regenerates `fabric_gears.py` from a gears-rust checkout, and the optional Rust harness in `tools/registry_check` builds against the same pinned commit. TeX and dvisvgm rebuild the optional TikZ diagrams. After installation, ordinary runs need no network.
 
 ### 3.6 Interactions & Sequences
 

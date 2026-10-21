@@ -267,7 +267,7 @@ The test suite checks rule examples, complete seeded sessions, causal prefixes, 
 
 ## 10. Dependencies
 
-NumPy for arrays and statistics, PyTorch for the GRU, matplotlib for figures and Constructor Studio for artifact validation. A Rust toolchain is needed only for the optional registry cross-check. Versions and install commands are in the README and the lock file.
+NumPy for arrays and statistics, PyTorch for the GRU, matplotlib for the animated session figure and Constructor Studio for artifact validation. A Rust toolchain is needed only for the optional registry cross-check. Versions and install commands are in the README and the lock file.
 
 ## 11. Assumptions
 

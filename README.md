@@ -87,13 +87,13 @@ Every forecast is judged right or wrong by its top guess (accuracy), and by the 
 
 The GRU's log-loss difference from the n-gram is −0.2202 nats per event, with a 95% interval of [−0.2273, −0.2128] from resampling whole sessions. Seed 0 is the first configured seed, not the best of the three.
 
-![Excess log loss over the Bayes reference in four test conditions.](results/figures/gap.svg)
+![Excess log loss over the Bayes oracle for the n-gram, state counts and GRU in four test conditions.](results/figures/gap.svg)
 
-*Excess log loss over the oracle. In (a) and (c) the oracle uses the priors that generated the sessions, so the bars are distances from the best achievable score. In (b) and (d) the sessions were selected after generation, which the oracle is not told about, so there it is a common reference, not the optimum.*
+*On held-out sessions and with the shifted agent, the oracle uses the priors that generated the sessions, so the bars are distances from the best achievable score. The other two test sets were selected after generation, which the oracle is not told about, so there it is a common reference, not the optimum.*
 
-![System-check accuracy on each excluded combination for the n-gram and for GRUs that did and did not see it, one mark per seed.](results/figures/unseen.svg)
+![System-check accuracy on each combination left out of training: n-gram, GRU that never saw it, GRU trained on it.](results/figures/unseen.svg)
 
-*Each combination was removed from training in turn. On overall log loss, the GRU that never saw a combination beats the n-gram in all nine runs, with every interval below zero ([all runs](results/REPORT.md#repeated-over-groups-and-seeds)).*
+*Each combination was removed from training in turn and the GRU retrained with three seeds. On system checks, the GRU that never saw it beats the n-gram in 8 of 9 runs; on overall log loss, in all nine, with every interval below zero ([all runs](results/REPORT.md#repeated-over-groups-and-seeds)).*
 
 - **Repeated traces.** 628 of the 2,000 test sessions repeat a training session exactly. On the other 1,372, the GRU still beats the n-gram by 0.25 nats per event. This rules out recall of whole traces, not reuse of familiar prefixes.
 - **Actions not taken.** For gears the agent did not propose, the GRU predicts the local verdict correctly 99.76% of the time.
