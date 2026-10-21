@@ -52,7 +52,7 @@ The take-home assignment asks for a self-chosen sequence of discrete events with
 
 ### 1.3 Goals (Business Outcomes)
 
-A reviewer can run a supplied checkpoint, reproduce the experiment, inspect individual predictions and judge the evidence without mistaking overall accuracy for generalization. A negative result counts as an outcome. The recorded run keeps both the GRU's gain on sessions drawn like the training data and its failure on an excluded requirement combination.
+A reviewer can run a supplied checkpoint, reproduce the experiment, inspect individual predictions and judge the evidence without mistaking overall accuracy for generalization. A negative result counts as an outcome. The excluded-combination test failed under the first, hand-written version of the simulator and passes under the gears-rust dependencies; the README reports both.
 
 ### 1.4 Glossary
 
@@ -197,7 +197,7 @@ The system **MUST** evaluate the trained predictors, without retraining, on a ch
 
 - [x] `p1` - **ID**: `cpt-nextgear-fr-unseen-combination`
 
-The system **MUST** exclude sessions needing the Chat Engine with both the Policy Manager and the License Resolver from the training and validation data of retrained models, score new sessions from that group, and report negative findings.
+The system **MUST** exclude sessions needing the Chat Engine with both the Policy Manager and the License Resolver from the training and validation data of retrained models, score new sessions from that group, and report the result whether it is positive or negative.
 
 #### Demonstration
 
@@ -231,7 +231,7 @@ The system **MUST** keep hidden specifications and future events away from the l
 
 - [x] `p1` - **ID**: `cpt-nextgear-nfr-runtime`
 
-The system **MUST** run on a CPU and record stage timings and the thread count. The measured run, 503 seconds on Windows with 16 threads, is reported as a measurement, not a runtime guarantee.
+The system **MUST** run on a CPU and record stage timings and the thread count. The measured run, 1,422 seconds on Linux with 4 threads, is reported as a measurement, not a runtime guarantee.
 
 ### 6.2 NFR Exclusions
 

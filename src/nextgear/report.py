@@ -160,10 +160,11 @@ def markdown(r: dict) -> str:
         *(f"| {label(n)} | {m['unchosen_local_accuracy']:.2%} | {m['local_log_loss']:.4f} | {m['submit_p_admissible']:.1%} | "
           f"{m['submit_log_loss']:.4f} |" for n, m in w["models"].items()),
         "", f"Forced submissions pass {w['true_admissible_rate']:.1%} of the time. In the logs, an agent submits when "
-        "it believes the assembly is ready, so a model trained on them reads a submission as evidence of "
-        "readiness and over-predicts a pass. The oracle without do() does the same, because it treats the "
-        "submission as an observation. The oracle queried with do() treats the submission as forced and does "
-        "not learn from it. These what-if figures are descriptive; no intervals are reported for them.",
+        "it believes the assembly is ready, so a model trained on them learns what follows a submission that is "
+        "evidence of readiness. A forced submission carries no such evidence. The oracle without do() still "
+        "treats it as an observation; the oracle queried with do() does not, and the difference between their "
+        "submit log losses measures what that evidence is worth here. These what-if figures are descriptive; no "
+        "intervals are reported for them.",
     ]
     s = r["shift"]
     lines += [

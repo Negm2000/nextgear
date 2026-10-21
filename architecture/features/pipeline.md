@@ -129,4 +129,4 @@ The command line **MUST** offer `all`, `train`, `evaluate`, `demo` and `hero`, t
 
 - [x] A toy configuration runs end to end, then the demo and the animation, in a test.
 - [x] Models stamped with other settings are refused.
-- [x] The recorded reference run took 503 seconds on Windows 11 with 16 CPU threads. Runtime on other machines will differ.
+- [x] The recorded reference run took 1,422 seconds on Linux with 4 CPU threads. Runtime on other machines will differ.

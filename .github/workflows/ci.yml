@@ -36,3 +36,24 @@ jobs:
         run: cfs validate
       - name: Build wheel and source distribution
         run: python -m build
+  registry-crosscheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the Rust toolchain gears-rust pins
+        run: rustup toolchain install 1.98.1 --profile minimal && rustup default 1.98.1
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tools/registry_check/target
+          key: registry-check-${{ hashFiles('tools/registry_check/Cargo.lock') }}
+      - name: Build the harness against the pinned gears-rust toolkit
+        run: cargo build --release --locked --manifest-path tools/registry_check/Cargo.toml
+      - name: Compare Nextgear's dependency check with the real registry
+        run: python tools/crosscheck_registry.py

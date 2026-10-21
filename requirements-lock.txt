@@ -1,4 +1,5 @@
-# Reference Windows CPU environment, Python 3.12.3.
+# Library versions of the recorded run: Python 3.12.3, CPU-only, Linux x86_64. They were first pinned on
+# Windows and install there too.
 # torch==2.14.1 accepts the recorded 2.14.1+cpu local version.
 contourpy==1.4.0
 cycler==0.12.1
