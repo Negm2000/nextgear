@@ -16,7 +16,7 @@ from nextgear.events import INDEX, VOCAB
 from nextgear.gru import GRUModel
 from nextgear.oracle import BayesOracle, predict_parallel
 from nextgear.rules import Spec
-from nextgear.simulator import Priors, generate
+from nextgear.simulator import Priors, State, generate
 
 
 class Shared:
@@ -99,6 +99,15 @@ class LearnedAndBaselineTests(unittest.TestCase):
         rows = model.predict_session(events)
         for t in range(1, len(events)):
             np.testing.assert_allclose(model.predict_next([events[:t]])[0], rows[t - 1])
+
+    def test_state_counts_see_a_spent_budget(self):
+        model, state = StateCounts(max_proposals=60, max_submissions=5), State(pending="decide")
+        def detailed(**changes):
+            return model._contexts(replace(state, **changes))[-1]
+
+        self.assertNotEqual(detailed(proposals=50), detailed(proposals=60))
+        self.assertNotEqual(detailed(submissions=4), detailed(submissions=5))
+        self.assertEqual(detailed(proposals=60)[-1], True)
 
     def test_predictors_never_see_hidden_values(self):
         session = Shared.test[0]

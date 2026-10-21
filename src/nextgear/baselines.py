@@ -10,7 +10,7 @@ from collections import Counter, defaultdict
 import numpy as np
 
 from .events import INDEX, VOCAB
-from .simulator import State, apply, replay
+from .simulator import Priors, State, apply, replay
 
 
 def interpolate(tables) -> np.ndarray:
@@ -91,12 +91,17 @@ class StateCounts:
 
     name = "state_counts"
 
-    @staticmethod
-    def _contexts(state: State) -> tuple:
+    def __init__(self, max_proposals: int = Priors.max_proposals, max_submissions: int = Priors.max_submissions):
+        # The agent's budgets, so the most detailed context can tell when it has run out and must abandon.
+        self.max_proposals, self.max_submissions = max_proposals, max_submissions
+
+    def _contexts(self, state: State) -> tuple:
         core = (state.pending, state.gear, state.path, state.outbound, state.platform, state.cache,
                 state.learned_outbound, state.learned_deps)
+        exhausted = state.proposals >= self.max_proposals or state.submissions >= self.max_submissions
         return ((), (state.pending, state.gear), core,
-                (*core, min(state.submissions, 4), min(state.proposals // 10, 4)))
+                (*core, min(state.submissions, self.max_submissions), min(state.proposals, self.max_proposals) // 10,
+                 exhausted))
 
     # @cpt-algo:cpt-nextgear-algo-predictors-state-counts:p1
     def fit(self, sequences) -> "StateCounts":

@@ -140,7 +140,7 @@ def evaluate(config: dict, data: dict, models_dir: Path, threads: int) -> dict:
     grus = {f"gru_seed{s}": GRUModel.load(models_dir / f"gru_seed{s}.pt") for s in seeds}
     gru = f"gru_seed{seeds[0]}"
     predictors = {"frequency": Frequency().fit(train_events), **ngrams,
-                  "state_counts": StateCounts().fit(train_events), **grus}
+                  "state_counts": StateCounts(base.max_proposals, base.max_submissions).fit(train_events), **grus}
 
     scored = score_all(predictors, test, base)
     models = {name: summarize(s, scored["oracle"]) for name, s in scored.items()}
@@ -187,7 +187,8 @@ def evaluate(config: dict, data: dict, models_dir: Path, threads: int) -> dict:
 
     # @cpt-begin:cpt-nextgear-algo-evaluation-holdout:p1:inst-score
     kept = [s.events for s in train if not in_holdout_group(s)]
-    held = {best: NGram(ngrams[best].context).fit(kept), "state_counts": StateCounts().fit(kept),
+    held = {best: NGram(ngrams[best].context).fit(kept),
+            "state_counts": StateCounts(base.max_proposals, base.max_submissions).fit(kept),
             "gru_holdout": GRUModel.load(models_dir / "gru_holdout.pt"), gru: grus[gru]}
     hold_scored = score_all(held, data["holdout"], base)
     report["holdout"] = {"sessions": len(data["holdout"]), "excluded_train": len(train) - len(kept),

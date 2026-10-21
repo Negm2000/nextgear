@@ -88,7 +88,7 @@ This feature has no user-facing flow; predictors are trained and queried inside 
 **Output**: A next-event distribution for any prefix
 
 **Steps**:
-1. [x] - `p1` - Replay each sequence through the state machine and count which event follows each visible state, at four levels of detail - `inst-count`
+1. [x] - `p1` - Replay each sequence through the state machine and count which event follows each visible state, at four levels of detail; the finest also records whether the agent's proposal or submission budget is spent - `inst-count`
 2. [x] - `p1` - Interpolate from the coarsest level to the most detailed one seen - `inst-interpolate`
 
 ### GRU training

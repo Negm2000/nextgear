@@ -129,4 +129,4 @@ The command line **MUST** offer `all`, `train`, `evaluate`, `sweep`, `demo` and 
 
 - [x] A toy configuration runs end to end, then the demo and the animation, in a test.
 - [x] Models stamped with other settings are refused.
-- [x] The recorded reference run took 1,422 seconds on Linux with 4 CPU threads, and the repeated exclusion test another 2,398 seconds. Runtime on other machines will differ.
+- [x] The recorded reference run took about 1,400 seconds on Linux with 4 CPU threads, and the repeated exclusion test another 2,400 seconds. Runtime on other machines will differ.

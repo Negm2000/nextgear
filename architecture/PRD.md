@@ -231,7 +231,7 @@ The system **MUST** keep hidden specifications and future events away from the l
 
 - [x] `p1` - **ID**: `cpt-nextgear-nfr-runtime`
 
-The system **MUST** run on a CPU and record stage timings and the thread count. The measured runs, 1,422 seconds for the main experiment and 2,398 for the repeated exclusion test on Linux with 4 threads, are reported as measurements, not runtime guarantees.
+The system **MUST** run on a CPU and record stage timings and the thread count. The measured runs, about 1,400 seconds for the main experiment and 2,400 for the repeated exclusion test on Linux with 4 threads, are reported as measurements, not runtime guarantees.
 
 ### 6.2 NFR Exclusions
 

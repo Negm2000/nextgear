@@ -65,7 +65,7 @@ Nextgear is a local Python experiment with three separate stages: generation, pr
 |---|---|
 | `cpt-nextgear-nfr-reproducible` | Seeds and split sizes live in `configs/*.toml`, and every split has its own seed. `data/stamp.txt` and `models/stamp.txt` hash the settings that produced the data and checkpoints; missing or mismatched data is regenerated, and mismatched models are refused. `report.json` records library versions. The stamps cover settings only, not edited data or generator code. |
 | `cpt-nextgear-nfr-information-boundary` | Predictors receive event tuples only, and row t of a forecast uses events up to t. The state-count model is labelled domain-informed, and the oracle's extra knowledge of equations and priors is stated. Tests check that predictors never see hidden values and that the generator imports no predictor. |
-| `cpt-nextgear-nfr-runtime` | CPU-only PyTorch with a `--threads` option. `report.json` records the thread count and the time of each stage. The README reports the 1,422-second main run and the 2,398-second repeated exclusion test, on Linux with 4 threads, as measurements, not guarantees. |
+| `cpt-nextgear-nfr-runtime` | CPU-only PyTorch with a `--threads` option. `report.json` records the thread count and the time of each stage. The README reports the main run (about 1,400 seconds) and the repeated exclusion test (about 2,400 seconds), on Linux with 4 threads, as measurements, not guarantees. |
 
 ### 1.3 Architecture Layers
 

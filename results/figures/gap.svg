@@ -27,32 +27,32 @@ svg { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", H
 <line x1="104.0" x2="104.0" y1="88" y2="164" class="grid"/>
 <path d="M104.0,92.0 H154.1 Q158.1,92.0 158.1,96.0 V104.0 Q158.1,108.0 154.1,108.0 H104.0 Z" fill="var(--ngram)"/>
 <text x="163.1" y="104.0" class="val" text-anchor="start">0.255</text>
-<path d="M104.0,118.0 H140.6 Q144.6,118.0 144.6,122.0 V130.0 Q144.6,134.0 140.6,134.0 H104.0 Z" fill="var(--counts)"/>
-<text x="149.6" y="130.0" class="val" text-anchor="start">0.192</text>
+<path d="M104.0,118.0 H140.0 Q144.0,118.0 144.0,122.0 V130.0 Q144.0,134.0 140.0,134.0 H104.0 Z" fill="var(--counts)"/>
+<text x="149.0" y="130.0" class="val" text-anchor="start">0.189</text>
 <path d="M104.0,144.0 H107.7 Q111.4,144.0 111.4,147.7 V156.3 Q111.4,160.0 107.7,160.0 H104.0 Z" fill="var(--gru)"/>
 <text x="116.4" y="156.0" class="val" text-anchor="start">0.035</text>
 <text x="277.5" y="78.0" class="head" text-anchor="start">Traces new to training</text>
 <line x1="277.5" x2="277.5" y1="88" y2="164" class="grid"/>
 <path d="M277.5,92.0 H334.9 Q338.9,92.0 338.9,96.0 V104.0 Q338.9,108.0 334.9,108.0 H277.5 Z" fill="var(--ngram)"/>
 <text x="343.9" y="104.0" class="val" text-anchor="start">0.289</text>
-<path d="M277.5,118.0 H321.9 Q325.9,118.0 325.9,122.0 V130.0 Q325.9,134.0 321.9,134.0 H277.5 Z" fill="var(--counts)"/>
-<text x="330.9" y="130.0" class="val" text-anchor="start">0.228</text>
+<path d="M277.5,118.0 H321.2 Q325.2,118.0 325.2,122.0 V130.0 Q325.2,134.0 321.2,134.0 H277.5 Z" fill="var(--counts)"/>
+<text x="330.2" y="130.0" class="val" text-anchor="start">0.225</text>
 <path d="M277.5,144.0 H282.4 Q286.4,144.0 286.4,148.0 V156.0 Q286.4,160.0 282.4,160.0 H277.5 Z" fill="var(--gru)"/>
 <text x="291.4" y="156.0" class="val" text-anchor="start">0.042</text>
 <text x="451.0" y="78.0" class="head" text-anchor="start">Agent behaviour shifted</text>
 <line x1="451.0" x2="451.0" y1="88" y2="164" class="grid"/>
 <path d="M451.0,92.0 H558.5 Q562.5,92.0 562.5,96.0 V104.0 Q562.5,108.0 558.5,108.0 H451.0 Z" fill="var(--ngram)"/>
 <text x="567.5" y="104.0" class="val" text-anchor="start">0.526</text>
-<path d="M451.0,118.0 H533.5 Q537.5,118.0 537.5,122.0 V130.0 Q537.5,134.0 533.5,134.0 H451.0 Z" fill="var(--counts)"/>
-<text x="542.5" y="130.0" class="val" text-anchor="start">0.408</text>
+<path d="M451.0,118.0 H531.6 Q535.6,118.0 535.6,122.0 V130.0 Q535.6,134.0 531.6,134.0 H451.0 Z" fill="var(--counts)"/>
+<text x="540.6" y="130.0" class="val" text-anchor="start">0.399</text>
 <path d="M451.0,144.0 H469.3 Q473.3,144.0 473.3,148.0 V156.0 Q473.3,160.0 469.3,160.0 H451.0 Z" fill="var(--gru)"/>
 <text x="478.3" y="156.0" class="val" text-anchor="start">0.105</text>
 <text x="624.5" y="78.0" class="head" text-anchor="start">Combination left out</text>
 <line x1="624.5" x2="624.5" y1="88" y2="164" class="grid"/>
 <path d="M624.5,92.0 H691.5 Q695.5,92.0 695.5,96.0 V104.0 Q695.5,108.0 691.5,108.0 H624.5 Z" fill="var(--ngram)"/>
 <text x="700.5" y="104.0" class="val" text-anchor="start">0.335</text>
-<path d="M624.5,118.0 H727.8 Q731.8,118.0 731.8,122.0 V130.0 Q731.8,134.0 727.8,134.0 H624.5 Z" fill="var(--counts)"/>
-<text x="736.8" y="130.0" class="val" text-anchor="start">0.506</text>
+<path d="M624.5,118.0 H726.9 Q730.9,118.0 730.9,122.0 V130.0 Q730.9,134.0 726.9,134.0 H624.5 Z" fill="var(--counts)"/>
+<text x="735.9" y="130.0" class="val" text-anchor="start">0.502</text>
 <path d="M624.5,144.0 H643.1 Q647.1,144.0 647.1,148.0 V156.0 Q647.1,160.0 643.1,160.0 H624.5 Z" fill="var(--gru)"/>
 <text x="652.1" y="156.0" class="val" text-anchor="start">0.107</text>
 </svg>
