@@ -110,9 +110,10 @@ def markdown(r: dict) -> str:
         f"with {meta['threads']} threads (Python {meta['python']}, PyTorch {meta['torch']}). "
         "Every number below comes from [report.json](report.json).", "",
         "## 1. Next-event prediction", "",
-        f"{ne['sessions']} held-out sessions, {ne['events']} predicted events. Log loss is the average "
-        "−log P(actual next event): lower is better, and the oracle's value is the lowest any events-only "
-        "predictor can reach in expectation. Accuracy counts the top prediction as right or wrong.", "",
+        f"{ne['sessions']} held-out sessions, {ne['events']} predicted events. Log loss is the average of "
+        "−log P(the event that happened); lower is better. Here the oracle's priors match the data, so its value "
+        "is the lowest that any predictor seeing only the events can expect. Accuracy scores the top prediction "
+        "as right or wrong.", "",
         "| Model | Log loss | Gap to oracle | Accuracy | Decisions | Local checks | System checks | Brier | ECE |",
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
@@ -125,8 +126,9 @@ def markdown(r: dict) -> str:
     lines += [
         "", f"The GRU closes **{ne['gap_closed']:.0%}** of the gap between the best n-gram and the oracle. "
         f"Across {len(ne['seeds'])} training seeds its log loss ranges from {min(ne['seeds']):.4f} to {max(ne['seeds']):.4f}. "
-        f"The n-gram context ({best.split('_')[1]} events) was chosen on validation data. ECE is the calibration "
-        "error of the top prediction on decisions and system checks, the steps that are actually uncertain.", "",
+        f"The n-gram context ({best.split('_')[1]} events) was chosen on validation data. ECE is the expected "
+        "calibration error of the top prediction, measured on decisions and system checks: the only steps whose "
+        "outcome depends on hidden values.", "",
         "## 2. Are the differences real?", "",
         "Differences in log loss per event, with 95% intervals from resampling whole sessions "
         f"({meta['config']['evaluation']['bootstrap_resamples']} resamples), so events from the same session stay together. "
@@ -136,9 +138,10 @@ def markdown(r: dict) -> str:
     nv = r["novel"]
     lines += [
         "", "## 3. Traces never seen in training", "",
-        f"A small simulator repeats itself: {nv['repeated']} of {ne['sessions']} test sessions match a training session "
-        f"event for event. The other {nv['sessions']} are novel complete traces; familiar prefixes and "
-        "subsequences can still recur, so this rules out exact full-trace recall rather than memorization in general.", "",
+        f"The simulator is small enough to repeat itself: {nv['repeated']} of {ne['sessions']} test sessions match a "
+        f"training session event for event. The tables below score the other {nv['sessions']}. Their prefixes and "
+        "subsequences can still be familiar from training, so this rules out recall of whole traces, not "
+        "memorisation in general.", "",
         "| Model | Log loss | Gap to oracle | Accuracy |", "|---|---:|---:|---:|",
         *(f"| {label(n)} | {m['log_loss']:.4f} | {m['excess']:.4f} | {m['accuracy']:.1%} |" for n, m in nv["models"].items()),
         "", "| Comparison | Steps | Difference [95% interval] |", "|---|---|---:|", *_paired_rows(nv["paired"]),
@@ -154,17 +157,18 @@ def markdown(r: dict) -> str:
         "|---|---:|---:|---:|---:|",
         *(f"| {label(n)} | {m['unchosen_local_accuracy']:.2%} | {m['local_log_loss']:.4f} | {m['submit_p_admissible']:.1%} | "
           f"{m['submit_log_loss']:.4f} |" for n, m in w["models"].items()),
-        "", f"A forced submission passes {w['true_admissible_rate']:.1%} of the time. Models trained on logs read a "
-        "submission as a sign the agent thinks it is done, so they over-predict a pass. The oracle queried with "
-        "do(), which does not treat the forced action as evidence, is closest to the observed rate. These "
-        "what-if summaries are descriptive; no uncertainty interval is reported for them.",
+        "", f"Forced submissions pass {w['true_admissible_rate']:.1%} of the time. In the logs, an agent submits when "
+        "it believes the assembly is ready, so a model trained on them reads a submission as evidence of "
+        "readiness and over-predicts a pass. The oracle without do() does the same, because it treats the "
+        "submission as an observation. The oracle queried with do() treats the submission as forced and does "
+        "not learn from it. These what-if figures are descriptive; no intervals are reported for them.",
     ]
     s = r["shift"]
     lines += [
         "", "## 5. The agent changes", "",
         f"{s['sessions']} sessions from changed settings, with no retraining: "
         + ", ".join(f"`{k} = {v}`" for k, v in s["changes"].items()) + ". The oracle knows the new settings; "
-        "\"Oracle, old priors\" is the same exact model with the old settings.", "",
+        "\"Oracle, old priors\" is the same exact model with the original settings.", "",
         "| Model | Log loss | Gap to oracle | Accuracy |", "|---|---:|---:|---:|",
         *(f"| {label(n)} | {m['log_loss']:.4f} | {m['excess']:.4f} | {m['accuracy']:.1%} |" for n, m in s["models"].items()),
         "", "| Comparison | Steps | Difference [95% interval] |", "|---|---|---:|", *_paired_rows(s["paired"]),
@@ -174,12 +178,12 @@ def markdown(r: dict) -> str:
         "", "## 6. A requirement combination never seen in training", "",
         f"Sessions whose specification needs the Chat Engine with both the Policy Manager and the License Resolver "
         f"were removed from training and validation ({h['excluded_train']} training sessions). The count models and a "
-        f"GRU were retrained without them, then scored on {h['sessions']} new sessions of exactly that kind. "
-        "\"GRU\" is the normal model, which did see such sessions. The oracle retains the base prior and is "
-        "not told that this evaluation group was selected; it is a common reference, not the optimum "
-        "for a predictor informed of the group restriction. Model settings and n-gram context are reused "
-        "from the main experiment; this is an exploratory exclusion test rather than an untouched "
-        "model-selection holdout.", "",
+        f"GRU were refit without them, then scored on {h['sessions']} new sessions of exactly that kind. "
+        "\"GRU\" is the normal model, which did see such sessions. The oracle keeps the base prior and is not "
+        "told that the evaluation sessions come from this group. It is a common reference, not the best score "
+        "available to a predictor that knew the group. Model settings and the n-gram context are reused from "
+        "the main experiment, where they were chosen on validation data that included this group, so this is "
+        "an exploratory exclusion test rather than an untouched holdout.", "",
         "| Model | Log loss | Gap to oracle | System checks log loss | System checks accuracy |", "|---|---:|---:|---:|---:|",
         *(f"| {label(n)} | {m['all']['log_loss']:.4f} | {m['all']['excess']:.4f} | {m['system check']['log_loss']:.4f} | "
           f"{m['system check']['accuracy']:.1%} |" for n, m in h["models"].items()),
@@ -188,9 +192,10 @@ def markdown(r: dict) -> str:
     lines += ["", "## 7. Training", "", "| Model | Epochs | Best validation log loss |", "|---|---:|---:|",
               *(f"| {label(t['model'])} | {t['epochs']} | {t['validation_log_loss']:.4f} |" for t in r["training"]),
               "", "Stage times (seconds): " + ", ".join(f"{k} {v:.0f}" for k, v in seconds.items()) + ".", "",
-              "Intervals condition on the fitted models and authored generator. They do not capture simulator "
-              "misspecification or all training randomness; three full-data training seeds are reported separately. "
-              "The holdout GRU uses one seed. These analyses are exploratory, with no preregistration or "
-              "multiple-comparison correction. The oracle shares transition code with the generator and is an "
-              "internal reference, not independent validation of the domain assumptions.", ""]
+              "The intervals are conditional on the fitted models and the authored generator. They do not cover "
+              "simulator misspecification or all training randomness; the three full-data training seeds show some "
+              "of the latter, and the holdout GRU has a single seed. The analyses are exploratory, without "
+              "preregistration or correction for multiple comparisons. The oracle shares transition code with the "
+              "generator, so it is a reference inside the simulator, not independent validation of the domain "
+              "assumptions.", ""]
     return "\n".join(lines)

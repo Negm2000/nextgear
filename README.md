@@ -19,7 +19,7 @@ On 2,000 held-out sessions, the GRU closes **73% of the gap** between the best n
 | GRU, seed 0 | **0.6196** | **81.1%** | 82.4% |
 | Bayes oracle | 0.5850 | 82.3% | 84.7% |
 
-The GRU's paired log-loss difference from the n-gram is −0.0921 nats per event, with a 95% session-bootstrap interval of [−0.0983, −0.0860]. Three training seeds give 0.6168–0.6199. The state-count model is told what the visible assembly is and matches the GRU on system checks. The GRU has to learn that assembly from raw events, and is still better overall by 0.0397 [0.0355, 0.0440].
+The GRU's paired log-loss difference from the n-gram is −0.0921 nats per event, with a 95% session-bootstrap interval of [−0.0983, −0.0860]. Three training seeds give 0.6168–0.6199. The state-count model is told what the visible assembly is and matches the GRU on system checks. The GRU has to learn that assembly from raw events, and its overall difference from the state counts is still −0.0397 [−0.0440, −0.0355].
 
 ![Excess log loss over the Bayes reference in four test conditions.](results/figures/gap.svg)
 

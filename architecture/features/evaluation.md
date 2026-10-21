@@ -38,11 +38,11 @@ Proper scores by step type, a paired session bootstrap, what-if verdicts, and th
 
 ### 1.1 Overview
 
-Every predictor forecasts every event of 2,000 held-out sessions. Forecasts are scored with log loss and accuracy, overall and per step type, and every difference between two models gets a 95% interval from resampling whole sessions. Three harder tests follow: test sessions whose exact trace never appears in training, sessions from a changed agent, and a combination of requirements removed from training. A what-if test asks each model about actions the agent did not take.
+Every predictor forecasts every event of 2,000 held-out sessions. Forecasts are scored with log loss and accuracy, overall and per step type, and each reported difference between two models gets a 95% interval from resampling whole sessions. Three harder tests follow: test sessions whose exact trace never appears in training, sessions from a changed agent, and a combination of requirements removed from training. A what-if test asks each model about actions the agent did not take.
 
 ### 1.2 Purpose
 
-Show that the GRU predicts something, how far it is from the Bayesian reference under declared priors, and where it stops working.
+Show that the GRU predicts something, measure how far it falls short of the Bayesian reference under the declared priors, and find where it stops working.
 
 **Requirements**: `cpt-nextgear-fr-benchmark`, `cpt-nextgear-fr-statistics`, `cpt-nextgear-fr-unseen-traces`, `cpt-nextgear-fr-what-if`, `cpt-nextgear-fr-shift`, `cpt-nextgear-fr-unseen-combination`, `cpt-nextgear-nfr-runtime`
 
@@ -135,7 +135,7 @@ This feature has no user-facing flow; it runs inside `cpt-nextgear-flow-pipeline
 
 **Input**: The training data, the holdout group, and a seed for new sessions
 
-**Output**: Scores of models trained without the group on new sessions from it
+**Output**: Scores of models trained without the group on new sessions from it, against the base-prior oracle as a common reference
 
 **Steps**:
 1. [x] - `p1` - Draw new sessions from the base priors and keep 600 whose specification needs the Chat Engine with both the Policy Manager and the License Resolver - `inst-sample`

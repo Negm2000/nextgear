@@ -34,7 +34,7 @@ One command reproduces everything; another replays a held-out session.
 
 ### 1.1 Overview
 
-`all` generates the data, trains the GRUs and writes the report. `demo` replays one held-out session, printing each forecast next to what happened, then asks what the checks would have said to every action the agent could have taken at one decision point. `hero` renders an illustrative held-out replay for the README; its session selection is disclosed.
+`all` generates the data, trains the GRUs and writes the report. `demo` replays one held-out session, printing each forecast next to what happened, then asks what the checks would have said to every action the agent could have taken at one decision point. `hero` draws one held-out session as an animated SVG for the README. The session is chosen by a stated rule rather than at random, and the README says so.
 
 ### 1.2 Purpose
 
@@ -129,4 +129,4 @@ The command line **MUST** offer `all`, `train`, `evaluate`, `demo` and `hero`, t
 
 - [x] A toy configuration runs end to end, then the demo and the animation, in a test.
 - [x] Models stamped with other settings are refused.
-- [x] The recorded reference run took 503 seconds on Windows 11 with 16 CPU threads; this is not a cross-machine guarantee.
+- [x] The recorded reference run took 503 seconds on Windows 11 with 16 CPU threads. Runtime on other machines will differ.

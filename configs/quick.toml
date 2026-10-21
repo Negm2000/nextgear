@@ -7,7 +7,7 @@ test = 200
 shifted = 100
 holdout = 60
 
-# Independent random streams per split. Identical event traces can still recur.
+# Each split draws from its own random stream. The same event trace can still occur in more than one split.
 [seeds]
 train = 1
 validation = 2
