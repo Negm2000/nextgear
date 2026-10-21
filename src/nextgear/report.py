@@ -18,7 +18,8 @@ from fontTools.ttLib import TTFont
 FONTS = Path(matplotlib.get_data_path()) / "fonts" / "ttf"
 logging.getLogger("fontTools").setLevel(logging.ERROR)  # the bundled fonts carry 1990s timestamps
 STYLE = """
-svg { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; --ink: #1f2328; --muted: #59636e; --grid: #d1d9e0; --ngram: #8c959f;
+svg { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+      --ink: #1f2328; --muted: #59636e; --grid: #d1d9e0; --ngram: #8c959f;
        --counts: #c4cbd3; --gru: #2a78d6; --seen: #a8c8ef; }
 @media (prefers-color-scheme: dark) {
   svg { --ink: #f0f6fc; --muted: #9198a1; --grid: #3d444d; --ngram: #6e7681; --counts: #454c54;
