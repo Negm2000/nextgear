@@ -275,4 +275,4 @@ Requirement frequencies, the mistake policy, verdict precedence, latency values,
 
 ## 12. Risks
 
-Inference is limited by artificial regularities in the simulator, repeated prefixes, exploratory inspection of test results, a single group and seed in the exclusion test, and confounding between observed actions and hidden state. Intervals are conditional on the fitted models and the generator. The animation's session was selected to illustrate, not to be representative.
+Inference is limited by artificial regularities in the simulator, repeated prefixes, exploratory inspection of test results, only three groups and three seeds in the exclusion test, and confounding between observed actions and hidden state. Intervals are conditional on the fitted models and the generator. The animation's session was selected to illustrate, not to be representative.

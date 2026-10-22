@@ -1,18 +1,18 @@
 # Nextgear
 
-**A neural network learns to predict, event by event, how an agent assembles Constructor Fabric's gears, and an exact Bayes oracle shows how close it comes to the best possible prediction.**
+A neural network watches an agent assemble Constructor Fabric's gears and predicts each next event. An exact Bayes oracle marks the best prediction possible, so the network's error can be measured against a ceiling.
 
 [![checks](https://github.com/Negm2000/nextgear/actions/workflows/ci.yml/badge.svg)](https://github.com/Negm2000/nextgear/actions/workflows/ci.yml)
 
-| 86% | 89.4% | 24,910 / 24,910 | 1 command |
-|:---:|:---:|:---:|:---:|
-| of the way from a six-event baseline to the best possible score | of pass/fail verdicts predicted from events alone (n-gram: 66.1%) | assemblies on which the dependency check agrees with Fabric's real registry | `python -m nextgear demo`, with no training |
+![A held-out session replayed event by event: the assembly as gear tiles, the event, the forecasts made before it, and the oracle's belief about the hidden specification.](assets/session.svg)
 
-A simulated agent builds an application from sixteen gears, one proposal at a time, and the platform's checks accept or reject each step. The gear names and request order come from Fabric's documentation, and every dependency comes from the `deps` each implemented gear declares in gears-rust. A one-layer GRU sees only the stream of events. An exact Bayes oracle averages over every possible hidden requirement and marks the best any such predictor can do.
+*A held-out session. The dependency check rejects the assembly because three platform gears are missing (red); the agent adds them and the assembly passes. Below each event: what the GRU and the oracle expected, and what the oracle believes about the hidden requirements. The session was picked by a stated rule, not by hand: [`pick_hero_session`](src/nextgear/demo.py).*
 
-![A held-out session replayed event by event: the request path, the platform gears, forecasts made before each event, and the oracle's belief about the hidden specification.](assets/session.svg)
+| 89.4% | 86% | 24,910 / 24,910 |
+|:---:|:---:|:---:|
+| of pass/fail verdicts predicted correctly, from events alone (n‑gram: 66.1%) | of the way from the best n‑gram to the best possible score | assemblies where the dependency check agrees with Fabric's own registry |
 
-*A held-out session. The dependency check rejects a Billing Ledger assembly that is missing three platform gears, and the agent repairs it. The middle panel shows the forecast made before each event (blue: GRU; outline: oracle); the right panel shows the oracle's belief about the hidden requirements. The session was chosen by a stated rule, not sampled: [`pick_hero_session`](src/nextgear/demo.py).*
+The agent builds an application from sixteen gears, one proposal at a time, and the platform's checks accept or reject each step. Gear names and request order come from Fabric's documentation, and every dependency from the `deps` each implemented gear declares in gears-rust. The GRU sees only the event stream; the oracle knows the generator's equations and averages over every hidden requirement.
 
 ## What it shows
 
